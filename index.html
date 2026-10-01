@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tomorrow's Weather – Hamar</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    #status {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid #334155;
+    }
+
+    .card .hour {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .card img {
+      width: 48px;
+      height: 48px;
+    }
+
+    .card .temp {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .card .wind {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .card .precip {
+      font-size: 0.75rem;
+      color: #60a5fa;
+    }
+
+    .summary-bar {
+      width: 100%;
+      max-width: 900px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .summary-bar .stat { display: flex; flex-direction: column; }
+    .summary-bar .label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-bar .value { font-size: 1.1rem; font-weight: 600; }
+
+    .error {
+      color: #f87171;
+      background: #1e293b;
+      border: 1px solid #f87171;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      max-width: 500px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tomorrow's Weather in Hamar</h1>
+  <p class="subtitle" id="date-label">Loading…</p>
+  <p id="status">Fetching forecast from MET Norway…</p>
+  <div class="summary-bar" id="summary" style="display:none"></div>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const LAT = 60.7945;
+    const LON = 11.0680;
+    const API = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`;
+    const ICON_BASE = 'https://raw.githubusercontent.com/metno/weathericons/main/weather/svg/';
+
+    function tomorrowDateString() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function formatDate(iso) {
+      return new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+    }
+
+    function windDir(deg) {
+      const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+      return dirs[Math.round(deg / 45) % 8];
+    }
+
+    async function load() {
+      const tomorrow = tomorrowDateString();
+      document.getElementById('date-label').textContent = formatDate(tomorrow);
+
+      let data;
+      try {
+        const res = await fetch(API, {
+          headers: { 'User-Agent': 'weather-demo-hamar/1.0 kimeidesmo@gmail.com' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+      } catch (err) {
+        document.getElementById('status').innerHTML =
+          `<div class="error">Could not load forecast: ${err.message}</div>`;
+        return;
+      }
+
+      const timeseries = data.properties.timeseries.filter(t =>
+        t.time.startsWith(tomorrow)
+      );
+
+      if (timeseries.length === 0) {
+        document.getElementById('status').textContent = 'No data available for tomorrow.';
+        return;
+      }
+
+      document.getElementById('status').style.display = 'none';
+
+      const temps = timeseries.map(t => t.data.instant.details.air_temperature);
+      const precips = timeseries
+        .map(t => t.data.next_1_hours?.details?.precipitation_amount ?? 0);
+      const totalPrecip = precips.reduce((a, b) => a + b, 0);
+
+      const summary = document.getElementById('summary');
+      summary.style.display = 'flex';
+      summary.innerHTML = `
+        <div class="stat"><span class="label">High</span><span class="value">${Math.max(...temps).toFixed(1)} °C</span></div>
+        <div class="stat"><span class="label">Low</span><span class="value">${Math.min(...temps).toFixed(1)} °C</span></div>
+        <div class="stat"><span class="label">Total precip.</span><span class="value">${totalPrecip.toFixed(1)} mm</span></div>
+        <div class="stat"><span class="label">Data points</span><span class="value">${timeseries.length} hrs</span></div>
+      `;
+
+      const grid = document.getElementById('grid');
+      timeseries.forEach(t => {
+        const hour = t.time.slice(11, 16);
+        const d = t.data;
+        const temp = d.instant.details.air_temperature;
+        const wind = d.instant.details.wind_speed;
+        const windDeg = d.instant.details.wind_from_direction;
+        const precip = d.next_1_hours?.details?.precipitation_amount;
+        const symbol = d.next_1_hours?.summary?.symbol_code
+                    ?? d.next_6_hours?.summary?.symbol_code
+                    ?? 'cloudy';
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <span class="hour">${hour}</span>
+          <img src="${ICON_BASE}${symbol}.svg" alt="${symbol}"
+               onerror="this.style.display='none'">
+          <span class="temp">${temp.toFixed(1)} °C</span>
+          <span class="wind">${wind} m/s ${windDir(windDeg)}</span>
+          ${precip != null ? `<span class="precip">${precip.toFixed(1)} mm</span>` : ''}
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    load();
+  </script>
+</body>
+</html>
