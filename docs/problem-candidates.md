@@ -12,7 +12,7 @@ Three candidate problems for an agentic workflow in Innlandet.
   - Public warning site: https://www.varsom.no/
 - **Terms to respect:**
   - MET: identifying `User-Agent`, respect caching headers and rate limits, attribution per https://api.met.no/doc/TermsOfService
-  - NVE: licence and attribution terms — TODO: verify link
+  - NVE: API data is licensed under NLOD 2.0 (https://data.norge.no/nlod/no/2.0), per https://api.nve.no/doc/. Credit NVE ("Contains data under NLOD provided by NVE") and link to the service used; mark our changes as ours; data is provided "as is" with no guarantee of accuracy.
 - **Agent step:** Produce a plain-Norwegian weekly digest of active flood, landslide and weather warnings for Innlandet.
 - **Definition of success:** Every warning ID and danger level in the source appears exactly once in `out/digest.json`, and no area outside Innlandet appears.
 
