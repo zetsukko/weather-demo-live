@@ -40,6 +40,10 @@ Users are described by role only; no names or contact details are stored.
 
 Raw responses are saved to `fixtures/` so the pipeline and checks can run with `--offline`, following the pattern from task 001.
 
+## Summary model
+
+The summary step uses a local model, `llama3.2:3b` served by Ollama (`LLM_PROVIDER=ollama` in `.env`). This keeps the cost of a run at zero and the warning data local. The daily GitHub Actions run has no local model and uses the template fallback. A small local model may write weaker Norwegian; this is measured in the evaluation.
+
 ## Output
 
 `out/digest.json`:

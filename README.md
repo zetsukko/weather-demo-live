@@ -11,7 +11,7 @@ The model writes prose only. Warning IDs, danger levels, areas and dates are cop
 ## Requirements
 
 - Python 3.10 or newer (standard library only; no packages to install)
-- Optional: an Anthropic API key for the summary step. Without it, deterministic template summaries are used.
+- Optional: [Ollama](https://ollama.com) with `llama3.2:3b` (`ollama pull llama3.2:3b`) for the summary step. Without a model, deterministic template summaries are used.
 
 ## Reproduce a run
 
@@ -19,8 +19,8 @@ The model writes prose only. Warning IDs, danger levels, areas and dates are cop
 # Offline: replays the saved NVE response and model answer in fixtures/ (no network, no key)
 python harness/run.py --offline
 
-# Live: fetches today's warnings from NVE and calls the model if ANTHROPIC_API_KEY is set
-cp .env.example .env        # then put your key in .env
+# Live: fetches today's warnings from NVE and calls the local model if LLM_PROVIDER=ollama is set
+cp .env.example .env        # then uncomment LLM_PROVIDER=ollama and OLLAMA_MODEL
 python harness/run.py
 
 # Live run that also refreshes the fixtures
@@ -40,7 +40,7 @@ A successful run ends with `PASS` and exit code 0. Output:
 
 ## Automatic daily run
 
-`.github/workflows/digest.yml` runs the offline check and then a live run every day at 05:15 UTC, and uploads `out/` as an artifact. Add the repository secret `ANTHROPIC_API_KEY` under Settings > Secrets and variables > Actions. Start a run by hand from the Actions tab with "Run workflow".
+`.github/workflows/digest.yml` runs the offline check and then a live run every day at 05:15 UTC, and uploads `out/` as an artifact. The GitHub runner has no local model, so this run uses the template summaries; summaries written by the model come from local runs with Ollama. Start a run by hand from the Actions tab with "Run workflow".
 
 ## Context files
 
@@ -52,10 +52,11 @@ A successful run ends with `PASS` and exit code 0. Output:
 ## Safe operation (current state)
 
 - The LLM gets only the normalised Innlandet warnings; warning text is passed as data, not instructions.
-- One model call per run, `max_tokens` = 2000.
+- One model call per run, output capped at 2000 tokens.
+- The model runs locally through Ollama: a run costs nothing and warning data never leaves the machine.
 - Kill switch: more than 60 active warnings, an API error, or invalid model output stops the run without a digest.
 - The digest is never sent anywhere automatically; a person decides what to pass on.
-- Keys live only in `.env` (git-ignored) or GitHub secrets.
+- No API key is needed; any optional key lives only in `.env` (git-ignored) or GitHub secrets.
 
 ## Data and licence
 

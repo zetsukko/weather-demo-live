@@ -94,9 +94,9 @@ The harness is a pipeline of five stages (Figure~\ref{fig:arch}). Only Stage~3 u
 
 \textbf{Stage 2: Normalise.} The raw records are mapped to one schema (\code{source}, \code{warning\_id}, \code{type}, \code{danger\_level}, \code{area}, \code{valid\_from}, \code{valid\_to}, official text fields) and filtered to warnings that list county~34 and have level~$\geq 2$. This list is the single source of truth for all facts in the digest.
 
-\textbf{Stage 3: Summarise (agent step).} One call to Claude Haiku through the Anthropic API receives the normalised list and a context file, \code{prompts/digest.md}, which defines the audience, the plain-language rules, the meaning of the NVE activity levels and the required JSON output (\code{warning\_id} $\rightarrow$ \code{summary\_no}). The model sees only the normalised warnings for Innlandet, not the raw API dump or other counties, which keeps the context small and limits the surface for instructions embedded in warning text. Official text is passed inside clearly delimited data blocks, and the prompt states that it is data, not instructions.
+\textbf{Stage 3: Summarise (agent step).} One call to a local model, \code{llama3.2:3b} served by Ollama, receives the normalised list and a context file, \code{prompts/digest.md}, which defines the audience, the plain-language rules, the meaning of the NVE activity levels and the required JSON output (\code{warning\_id} $\rightarrow$ \code{summary\_no}). The model sees only the normalised warnings for Innlandet, not the raw API dump or other counties, which keeps the context small and limits the surface for instructions embedded in warning text. Official text is passed inside clearly delimited data blocks, and the prompt states that it is data, not instructions.
 
-Without an API key, or with \code{-{}-no-llm}, the stage falls back to deterministic template summaries built from the official fields, and \code{-{}-offline} replays a saved model answer from \code{fixtures/}, so the full pipeline is reproducible without network or key.
+Without an API key, or with \code{-{}-no-llm}, the stage falls back to deterministic template summaries built from the official fields, and \code{-{}-offline} replays a saved model answer from \code{fixtures/}, so the full pipeline is reproducible without network or key. Running the model locally keeps the cost of a run at zero and the warning data on our own machine. The daily GitHub Actions run has no local model, so it uses the template fallback; the summaries written by the model come from local runs.
 
 \textbf{Stage 4: Assemble.} \code{harness/assemble.py} joins the model's summaries to the Stage~2 records by \code{warning\_id} and writes \code{out/digest.json} and \code{out/digest.md} with attribution. The model's output is never trusted for facts; a summary for an unknown ID is discarded and a missing summary fails the check.
 
@@ -117,7 +117,7 @@ The schedule works backwards from the demonstration in weeks 46--47 and the whit
 \toprule
 \textbf{When} & \textbf{Milestone} \\
 \midrule
-30.10 (C2) & Walking skeleton: NVE flood warnings $\rightarrow$ normalise $\rightarrow$ Haiku summary $\rightarrow$ digest $\rightarrow$ check, via \code{run.py} and a daily GitHub Actions run. Report submitted. \\
+30.10 (C2) & Walking skeleton: NVE flood warnings $\rightarrow$ normalise $\rightarrow$ local Ollama summary $\rightarrow$ digest $\rightarrow$ check, via \code{run.py} and a daily GitHub Actions run. Report submitted. \\
 Week 45 & Add NVE landslide warnings and MET MetAlerts. Build test set v1 from saved fixtures: typical days, the empty case, a level-4 warning, multi-county warnings, and a non-Innlandet warning that must be rejected. \\
 Week 46 & Safe operation: per-run token cap, kill switch, permission scoping for the runtime. First stress tests (input perturbation, dependency failure). Demo rehearsal. \\
 Weeks 46--47 & Live demonstration. \\
@@ -140,7 +140,8 @@ No active warnings in Innlandet during testing & Test from saved fixtures, inclu
 LLM changes a level or date, or invents a warning & Facts never pass through the model (Figure~\ref{fig:arch}); property~5 rejects ungrounded numbers in summaries; a failed check means no digest. \\
 Prompt injection in warning text & Warning text is passed as delimited data; output must match a fixed JSON schema; tested as an input perturbation in week~46. \\
 API change, outage or rate limiting & Version-pinned endpoint (NVE keeps old versions for at least six months), fixtures and \code{-{}-offline}, explicit error on non-200 responses instead of a partial digest. \\
-Cost or key leakage & Key only in \code{.env} (git-ignored, read-denied for the coding agent) and GitHub secrets; one model call per run with a fixed \code{max\_tokens}. \\
+Cost, key or data leakage & The summary model runs locally through Ollama, so a run costs nothing and warning data stays on our machine; no API key is needed, and any optional key lives only in \code{.env} (git-ignored, read-denied for the coding agent) or GitHub secrets; one model call per run with a fixed output token limit. \\
+Weaker Norwegian from a small local model & \code{llama3.2:3b} is a small model and may write less fluent or less plain Norwegian than a large hosted model. The binary checks still protect the facts; the quality of the language will be measured in the evaluation with the readability rubric. \\
 Time: two people, five weeks & Thin end-to-end skeleton first; sources are added one task at a time; MetAlerts is dropped before the evaluation work if time runs short. \\
 \bottomrule
 \end{tabularx}
