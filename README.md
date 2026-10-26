@@ -1,18 +1,66 @@
-# Weather Demo – Hamar
+# Varsel Innlandet – daily digest of flood warnings for Innlandet
 
-A single-page weather forecast app that shows tomorrow's hourly weather for Hamar, Norway.
+KIUA-2003 course project (Kim and Ådne). An agentic harness that fetches official NVE flood warnings for Innlandet (county 34), has a language model write a short plain-Norwegian summary of each warning, and checks the result with code before anyone reads it.
 
-## What it does
+```
+NVE API -> 1 fetch -> 2 normalise -> 3 summarise (LLM) -> 4 assemble -> 5 check (exit 0/1)
+```
 
-- Fetches live data from the [MET Norway Locationforecast API](https://api.met.no/) (no API key required)
-- Displays a daily summary: high/low temperature and total precipitation
-- Shows one card per hour with temperature, wind speed/direction, precipitation, and weather icon
+The model writes prose only. Warning IDs, danger levels, areas and dates are copied by code from the source. See `SPEC.md` for the definition of success.
 
-## How to run
+## Requirements
 
-Just open `index.html` in a browser — no build step, no server, no dependencies.
+- Python 3.10 or newer (standard library only; no packages to install)
+- Optional: an Anthropic API key for the summary step. Without it, deterministic template summaries are used.
 
-## Data source
+## Reproduce a run
 
-[MET Norway – Locationforecast 2.0](https://api.met.no/weatherapi/locationforecast/2.0/documentation)  
-Location: Hamar, Norway (60.7945°N, 11.0680°E)
+```bash
+# Offline: replays the saved NVE response and model answer in fixtures/ (no network, no key)
+python harness/run.py --offline
+
+# Live: fetches today's warnings from NVE and calls the model if ANTHROPIC_API_KEY is set
+cp .env.example .env        # then put your key in .env
+python harness/run.py
+
+# Live run that also refreshes the fixtures
+python harness/run.py --save-fixture
+
+# Check an existing output on its own
+python eval/check_digest.py
+```
+
+On Windows, use `py` instead of `python`.
+
+A successful run ends with `PASS` and exit code 0. Output:
+
+- `out/digest.json` – machine-readable digest (what the check reads)
+- `out/digest.md` – readable digest (removed again if the check fails)
+- `out/raw_nve_flood.json`, `out/warnings.json`, `out/summaries.json` – intermediate stages
+
+## Automatic daily run
+
+`.github/workflows/digest.yml` runs the offline check and then a live run every day at 05:15 UTC, and uploads `out/` as an artifact. Add the repository secret `ANTHROPIC_API_KEY` under Settings > Secrets and variables > Actions. Start a run by hand from the Actions tab with "Run workflow".
+
+## Context files
+
+- `prompts/digest.md` – instructions for the summary model (runtime context)
+- `CLAUDE.md` – how the coding agent works in this repository
+- `SPEC.md` – problem, users, sources, definition of success
+- `tasks/` – one file per task with its acceptance check
+
+## Safe operation (current state)
+
+- The LLM gets only the normalised Innlandet warnings; warning text is passed as data, not instructions.
+- One model call per run, `max_tokens` = 2000.
+- Kill switch: more than 60 active warnings, an API error, or invalid model output stops the run without a digest.
+- The digest is never sent anywhere automatically; a person decides what to pass on.
+- Keys live only in `.env` (git-ignored) or GitHub secrets.
+
+## Data and licence
+
+Flood warnings from NVE / Flomvarslingstjenesten via [varsom.no](https://www.varsom.no), API docs at https://api.nve.no/doc/flomvarsling/, licensed under [NLOD 2.0](https://data.norge.no/nlod/no/2.0). Data is provided "as is". The summaries are produced by this project and are not official warnings.
+
+## Earlier work
+
+`index.html`, `harness/probe.py` and `eval/check_probe.py` are from task 001 (MET Norway forecast probe for Hamar), which established the fixture and `--offline` pattern.

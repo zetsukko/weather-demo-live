@@ -1,0 +1,29 @@
+name: Daily hazard digest
+on:
+  schedule:
+    - cron: "15 5 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Offline regression check (saved fixtures)
+        run: python harness/run.py --offline
+      - name: Live run (NVE + LLM summary)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python harness/run.py
+      - name: Upload digest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ github.run_number }}
+          path: out/
+          retention-days: 30
