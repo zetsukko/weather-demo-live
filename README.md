@@ -40,7 +40,7 @@ A successful run ends with `PASS` and exit code 0. Output:
 
 ## Automatic daily run
 
-`.github/workflows/digest.yml` runs the offline check and then a live run every day at 05:15 UTC, and uploads `out/` as an artifact. The GitHub runner has no local model, so this run uses the template summaries; summaries written by the model come from local runs with Ollama. Start a run by hand from the Actions tab with "Run workflow".
+`.github/workflows/digest.yml` runs the offline check and then a live run every day at 05:15 UTC, and uploads `out/` as an artifact. The GitHub runner has no local model, so this run uses the template summaries; summaries written by the model come from local runs with Ollama. The workflow still passes the `ANTHROPIC_API_KEY` secret; it is unused while the secret is not set, and setting it later switches the Actions run to the Anthropic API. Start a run by hand from the Actions tab with "Run workflow".
 
 ## Context files
 
