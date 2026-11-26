@@ -3,7 +3,8 @@
     "deny": [
       "Read(.env)",
       "Read(.env.local)",
-      "Edit(/eval/**)"
+      "Edit(/eval/check_digest.py)",
+      "Edit(/eval/check_probe.py)"
     ]
   }
 }

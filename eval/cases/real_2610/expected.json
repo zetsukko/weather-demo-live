@@ -1,0 +1,11 @@
+{
+  "case": "real_2610",
+  "expect": "warnings",
+  "warnings": [
+    {
+      "warning_id": "584962",
+      "danger_level": 2
+    }
+  ],
+  "description": "Unchanged NVE response of 26.10.2026: one yellow warning (584962) in five Innlandet municipalities."
+}

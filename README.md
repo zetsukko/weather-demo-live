@@ -38,6 +38,26 @@ A successful run ends with `PASS` and exit code 0. Output:
 - `out/digest.md` – readable digest (removed again if the check fails)
 - `out/raw_nve_flood.json`, `out/warnings.json`, `out/summaries.json` – intermediate stages
 
+## Evaluation run
+
+```bash
+py eval/run_eval.py
+```
+
+Replays every saved case in `eval/cases/<case>/` through the whole harness (`harness/run.py --input <case>/nve.json --no-llm`, so it is deterministic and needs no network or model), runs `eval/check_digest.py`, and compares the outcome with the case's `expected.json`. It prints a table (case, expected, result, PASS/FAIL) with totals and writes `eval/results/latest.md` and `eval/results/latest.json`. Exit code 0 means every case passed.
+
+| case | what it tests | expected |
+|---|---|---|
+| `real_2610` | unchanged NVE response of 26.10.2026 | warning 584962, level 2 |
+| `empty_day` | all records level 1 | no-warnings message |
+| `orange_level3`, `red_level4` | warning 584962 at level 3 / 4 | level copied exactly |
+| `multi_county` | 584962 also lists county 31 | still included |
+| `other_county_only` | extra warning for county 46 only | must not appear |
+| `conflicting_records` | same Id, different levels | run stops, no digest |
+| `missing_fields` | yellow warning without `ValidTo` | run stops, no digest |
+
+All cases except `real_2610` are derived from it; each `expected.json` has `derived_from` and a one-line `description` of the change. Rebuild the inputs with `py eval/cases/build_cases.py`. Any single saved response can also be run directly: `py harness/run.py --input <file> --no-llm`.
+
 ## Automatic daily run
 
 `.github/workflows/digest.yml` runs the offline check and then a live run every day at 05:15 UTC, and uploads `out/` as an artifact. The GitHub runner has no local model, so this run uses the template summaries; summaries written by the model come from local runs with Ollama. The workflow still passes the `ANTHROPIC_API_KEY` secret; it is unused while the secret is not set, and setting it later switches the Actions run to the Anthropic API. Start a run by hand from the Actions tab with "Run workflow".

@@ -1,0 +1,12 @@
+{
+  "case": "multi_county",
+  "expect": "warnings",
+  "warnings": [
+    {
+      "warning_id": "584962",
+      "danger_level": 2
+    }
+  ],
+  "derived_from": "real_2610",
+  "description": "County 31 (Viken) added to CountyList next to 34 on the five 584962 records: a warning that also covers another county must still appear."
+}

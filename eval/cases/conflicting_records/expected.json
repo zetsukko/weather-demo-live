@@ -1,0 +1,6 @@
+{
+  "case": "conflicting_records",
+  "expect": "reject",
+  "derived_from": "real_2610",
+  "description": "One of the five 584962 records set to level 3 while the others stay at 2: same Id, different levels, so the run must stop without a digest."
+}
