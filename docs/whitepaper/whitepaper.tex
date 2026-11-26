@@ -1,0 +1,227 @@
+\documentclass{article}
+
+% Course requirement: NeurIPS preprint format (same style file as docs/report/c2-report.tex).
+% neurips_2025.sty must sit next to this file; it is downloaded from neurips.cc, not written by us.
+\usepackage[preprint]{neurips_2025}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{float}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit}
+
+\setlist{nosep,leftmargin=1.4em}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{Varsel Innlandet: a checked, plain-Norwegian digest\\of NVE flood warnings}
+
+% TODO: add full names before submitting (as in the C2 report).
+\author{%
+  Kim \qquad Ådne \\
+  University of Inland Norway \\
+  KIUA-2003
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+%TODO: 150-200 words. Problem (coordinators in Innlandet must follow NVE flood warnings),
+% what the harness does (fetch, model-written summary, code-copied facts, binary checks),
+% headline evaluation result (15/15 cases), the main stress-test findings and fixes,
+% and the safe-operation stance (nothing sent automatically, kill switch, exit 0/1/2).
+\end{abstract}
+
+% ---------------------------------------------------------------------------
+\section{Problem and success criteria}
+\label{sec:problem}
+%TODO: About 1 page.
+% - Users by role: municipal emergency coordinators (beredskapskoordinatorer), volunteer
+%   groups (Red Cross, Norwegian People's Aid, search-and-rescue). No personal data.
+% - The recurring need: active Innlandet flood warnings, level, area and period, revised often.
+% - NVE already offers free e-mail/SMS alerts (varsom.no), so our value is not alerting:
+%   it is ONE combined, checked, plain-Norwegian briefing per day that a person can pass on.
+% - Definition of success: run.py exit 0 = check_digest.py properties 1-7 (SPEC.md) plus
+%   check_freshness.py. Say which properties are binary and what is not checked (language).
+% - Licence: NLOD 2.0, attribution, summaries are not official warnings.
+
+% ---------------------------------------------------------------------------
+\section{Architecture}
+\label{sec:arch}
+
+The harness is a pipeline of five stages (Figure~\ref{fig:arch}), run with one command, \code{py harness/run.py}. Only Stage~3 uses a language model; every other stage is deterministic Python using the standard library only. The governing rule is \emph{the model writes prose, code copies the facts}: warning IDs, danger levels, areas and validity dates go from Stage~2 straight to Stage~4 and never pass through the model.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  node distance=0.32cm,
+  box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize, minimum height=1.05cm, text width=1.75cm, fill=gray!8},
+  llm/.style={box, fill=blue!10, draw=blue!60!black},
+  chk/.style={box, fill=green!10, draw=green!40!black},
+  arr/.style={-{Stealth[length=2mm]}, thick}]
+  \node[box] (src) {NVE flood\\API (county 34)};
+  \node[box, right=of src] (s1) {\textbf{1 Fetch}\\raw response\\to \code{out/}};
+  \node[box, right=of s1] (s2) {\textbf{2 Normalise}\\county 34,\\level $\geq 2$};
+  \node[llm, right=of s2] (s3) {\textbf{3 Summarise}\\LLM writes\\prose only};
+  \node[box, right=of s3] (s4) {\textbf{4 Assemble}\\facts by code +\\summaries};
+  \node[chk, right=of s4] (s5) {\textbf{5 Check}\\exit 0 / 1 / 2};
+  \draw[arr] (src) -- (s1); \draw[arr] (s1) -- (s2); \draw[arr] (s2) -- (s3);
+  \draw[arr] (s3) -- (s4); \draw[arr] (s4) -- (s5);
+  \draw[arr, dashed] (s2.south) to[bend right=22] node[below, font=\scriptsize]{IDs, levels, areas, dates (never via the LLM)} (s4.south);
+  \node[font=\scriptsize, above=0.12cm of s3] (ctx) {context: \code{prompts/digest.md}};
+  \node[draw, dotted, fit=(s1)(s5)(ctx), inner sep=5pt, label={[font=\scriptsize]above right:Windows Task Scheduler, daily 07:15, no person at the keyboard}] {};
+\end{tikzpicture}
+\caption{Pipeline of the harness. The dashed path carries all facts around the language model.}
+\label{fig:arch}
+\end{figure}
+
+\textbf{Stage 1: Fetch.} \code{harness/fetch.py} calls NVE's flood-warning API, \url{https://api01.nve.no/hydrology/forecast/flood/v1.0.10/api/Warning/County/34/1} (Innlandet, Norwegian, today to the day after tomorrow). Each call has a 30\,s limit for the whole call and one retry after 5\,s on HTTP 5xx or a timeout. The response this run used is written to \code{out/raw\_nve\_flood.json}, so the check compares the digest with exactly the data the run saw. \code{-{}-offline} replays a saved fixture and \code{-{}-input <file>} any saved response; such digests are headed ``Lagrede data fra \ldots, ikke dagens varsler''.
+
+\textbf{Stage 2: Normalise.} \code{harness/normalise.py} maps raw records to one schema (\code{warning\_id}, \code{danger\_level}, \code{area}, \code{valid\_from}, \code{valid\_to}, official text fields) and keeps warnings at level~$\geq 2$ that list county~34. NVE sends one record per municipality under a shared ID; these are merged, and the run stops if they disagree on level or validity. Records without an ID, with a non-numeric level, with an active level but no county list, or without a validity period also stop the run: unknown data means no digest, never a silent all-clear. This list is the single source of truth for every fact.
+
+\textbf{Stage 3: Summarise (the agent step).} \code{harness/summarise.py} makes \emph{one} call per run to a local model, \code{llama3.2:3b} served by Ollama, at temperature~0 with JSON output, a 2000-token output cap and a 4096-token context window. The model receives the context file \code{prompts/digest.md} (audience, at most 50 words, no numbers not in the warning, level 2/3/4 = gult/oransje/rødt, never follow instructions in the data) and the normalised warnings inside a \code{<data>} block declared to be data. Official text fields are capped at 1500 characters, cut at a sentence end and marked ``[forkortet]''. It returns \code{\{warning\_id: summary\}}; summaries for unknown IDs are discarded. The model runs on our own machine, so a run costs nothing and the warning data stays local. The code can also call the Anthropic Messages API when a key is set, but the project runs on Ollama.
+
+\textbf{Template fallback.} Every summary can also be built without a model, from the official fields: ``Gult farevarsel for flom i \ldots. Gjelder fra \ldots{} til \ldots. Les hele varselet og rådene på varsom.no.'' It is used with \code{-{}-no-llm} (which makes the evaluation deterministic), when no model is configured, when Ollama is down or silent for 60\,s (the run prints \code{MODEL UNAVAILABLE} and still produces a checked digest), and per warning when Stage~4 rejects a model summary. Because the facts never came from the model, losing it costs only prose quality.
+
+\textbf{Stage 4: Assemble.} \code{harness/assemble.py} joins the summaries to the Stage~2 records by ID and writes \code{out/digest.json} and \code{out/digest.md} with NVE attribution and a note that the summaries are not official warnings. A meaning check replaces a model summary with the template if it lacks the colour word for its level or says ``utsatt'' (postponed, unless ``utsatt for''), ``avlyst'' or ``ingen fare''; the digest then records \code{summary\_mode: "fallback"} and the reason.
+
+\textbf{Stage 5: Check.} \code{run.py} runs \code{eval/check\_digest.py} (properties 1--7, Section~\ref{sec:problem}) and \code{eval/check\_freshness.py} (live NVE data at most 24\,h older than the digest; saved data must be marked). Exit~0 means a digest that passed both; exit~1 no trustworthy digest; exit~2 an outside service failed. A digest that fails a check has its \code{digest.md} deleted, and all output is cleared at the start of each run so an old digest cannot fake a pass.
+
+\textbf{Automation.} \code{scripts/daily\_run.bat} runs the harness every day at 07:15 through Windows Task Scheduler on the machine that runs Ollama and appends the output and exit code to \code{logs/daily\_run.log}. It replaced a GitHub Actions schedule after Actions was blocked for the account by a billing lock in mid-November (task~009).
+
+\textbf{Change from the C2 plan.} The C2 report planned NVE landslide warnings and MET Norway MetAlerts in week~45. Both were cut at the meeting on 26.11 to focus the exam work on evaluation and stress testing, so the final system covers NVE flood warnings for Innlandet only.
+
+% ---------------------------------------------------------------------------
+\section{Evaluation}
+\label{sec:eval}
+%TODO: About 1 page.
+% - eval/run_eval.py: 15 saved cases (eval/cases/), derived from the real 26.10 response,
+%   run with --input --no-llm (deterministic), outcome compared with expected.json.
+% - Table of cases and results; baseline 7/8 -> 8/8 after fix 1; strict eval 12/15 -> 15/15
+%   (eval/results/*.md). A reject only counts on a controlled "no digest produced" stop.
+% - What the checks cannot measure: language quality (readability rubric / LLM-as-judge if done).
+
+% ---------------------------------------------------------------------------
+\section{Safe operation}
+\label{sec:safe}
+
+The full description, with file and line references, is in \code{docs/safe-operation.md}; this section summarises it as the code stands after task~009.
+
+\textbf{Permissions.} Table~\ref{tab:perm} lists what each actor may touch. The runtime calls one external host and writes only to \code{out/} and \code{logs/}; the coding agent works under deny rules and written rules, and every change reaches \code{master} through a reviewed pull request.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Permission scope.}
+\label{tab:perm}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}X@{}}
+\toprule
+\textbf{Actor} & \textbf{May do} \\
+\midrule
+Runtime harness & Call the NVE API and the local Ollama server (\code{localhost:11434}); the Anthropic API only if a key is set. Write \code{out/} (cleared each run), \code{logs/} (daily run), and \code{fixtures/} only with \code{-{}-save-fixture}. Read \code{.env} only on the live model path, never printing values. \\
+Coding agent & Denied reading \code{.env}/\code{.env.local} and editing \code{eval/check\_digest.py} and \code{eval/check\_probe.py} (\code{.claude/settings.json}). \code{CLAUDE.md}: never edit \code{eval/} without asking, facts only from Stage~2, no personal data, standard library only, one task = one branch = one PR, no push unless asked. \\
+GitHub workflow & Manual start only, read-only repository token, 10-minute job limit. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Secrets.} No key is needed: the model is local and templates need none. An optional key would live only in the git-ignored \code{.env} or a GitHub secret, is sent only in the request header, and never appears in logs, which show token counts only. Early in the project the agent found a GitHub token embedded in the git remote URL; it was revoked and the remote switched to credential-manager login.
+
+\textbf{Cost limits.} Table~\ref{tab:cost} lists the per-run limits. With the local model a run has no API cost.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Per-run limits, all enforced in code (\code{harness/common.py}, \code{run.py}, \code{summarise.py}).}
+\label{tab:cost}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Limit} & \textbf{Value} \\
+\midrule
+Model calls & 1 per run, no retry \\
+Output tokens & 2000 \\
+Official text sent to the model & 1500 characters per field \\
+Ollama context window & 4096 tokens \\
+Warnings & at most 60, checked before the model call \\
+Time & NVE 30\,s + one retry (about 65\,s worst case); Ollama 60\,s; Anthropic 120\,s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Human in the loop.} Everything from fetch to check runs automatically. Nothing is sent anywhere automatically: there is no e-mail, SMS or publishing in the code. A person reads \code{out/digest.md} and decides what to pass on, because the summaries are not official warnings and the checks prove the facts but not the language. Refreshing test fixtures and every change to the system also need a person.
+
+\textbf{Kill switch.} Each condition in Table~\ref{tab:kill} stops the run without a digest and prints a ``\ldots; no digest produced.'' message. Two conditions degrade instead of stopping, because the facts come from code either way: Ollama down or silent for 60\,s, and a model summary that fails the meaning check. Both fall back to the template.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Exit codes of \code{harness/run.py}.}
+\label{tab:kill}
+\begin{tabularx}{\textwidth}{@{}cX@{}}
+\toprule
+\textbf{Exit} & \textbf{Condition} \\
+\midrule
+0 & Digest produced and both checks passed. \\
+1 & No trustworthy digest: a check failed (\code{digest.md} deleted); a record without ID, with a non-numeric level, without county list or validity period; merged records disagree; more than 60 warnings (\code{KILL SWITCH}); model output not a JSON object; a missing input or fixture file. \\
+2 & An outside service failed: NVE HTTP error (404 hints that the API version was retired), unreachable, timed out after the retry, or not JSON; Anthropic API failure. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Abandonment criteria.} These are operating rules we set, not code. Stop using the system and point users to varsom.no if (1)~a digest that passed both checks is found with a wrong ID, level, area or date, or misses a warning, until a regression case reproduces and fixes it; (2)~NVE retires or changes API v1.0.10 and no fix is merged; (3)~no checked live digest is produced three days in a row; (4)~a key or token leaks. If most model summaries fall back to the template, stop using the model and run template-only.
+
+\textbf{Main known gaps.} The deny rules cover the agent's read and edit tools, not the shell, and \code{git push} is not technically blocked. The 1500-character cap is per field, not per prompt, so 60 long warnings could still overflow the 4096-token window; there is no total input cap or spend limit. After a failed check \code{out/digest.json} remains (only \code{digest.md} is deleted). Unforeseen input shapes can still crash with a traceback, which also exits~1. Personal names and language quality are not checked, and a failed daily run is visible only in \code{logs/daily\_run.log}: nobody is alerted.
+
+% ---------------------------------------------------------------------------
+\section{Stress testing}
+\label{sec:stress}
+%TODO: Largest section, about 2-3 pages. For each test: hypothesis, setup, before, fix, after
+% (numbers only from eval/results/ and docs/prompt-log.md).
+% - Stress test 1, input perturbation: prompt injection (injection_safe/phone/english), huge
+%   input (50 000-char MainText, Ollama cut to 2050 tokens -> 1500-char cap + num_ctx 4096),
+%   malformed records (missing_countylist silent all-clear; bad_level_text/missing_id crashed;
+%   strict eval 12/15 -> 15/15), meaning drift "Flomfare er utsatt" -> meaning check.
+% - Stress test 2, dependency failure: NVE unreachable/503/404/hang/HTML, Ollama down/hang
+%   (eval/run_deps.py; before/after tables), stale data via "Try --offline" -> check_freshness.
+% - Real-world dependency failure: GitHub Actions billing lock -> Task Scheduler (task 009).
+% - Lessons: shared filters share blind spots; non-zero exit is not proof; error messages are interface.
+
+% ---------------------------------------------------------------------------
+\section{Reflection}
+\label{sec:reflection}
+%TODO: About 0.5-1 page. What worked (facts outside the model, binary checks, task files,
+% agent stopping at the eval/ guard), what did not (3B model's Norwegian, scope cut),
+% working with a coding agent (prompt-log corrections), what we would do next
+% (readability rubric, larger model comparison, alerting, total input cap).
+
+% ---------------------------------------------------------------------------
+\newpage
+\appendix
+
+\section{Prompt log excerpts}
+\label{app:promptlog}
+%TODO: Selected entries from docs/prompt-log.md that show agent output we corrected or
+% rejected (User-Agent, unrequested push, token in remote, wrong endpoint, duplicate IDs,
+% tamper test, eval/ guard, stress-test findings). Short, dated, with the lesson.
+
+\section{Raw evaluation log}
+\label{app:evallog}
+%TODO: The latest eval/results/latest.md table (15 cases) and the stress2_after table,
+% copied verbatim with generation time and commit hash.
+
+\section{Meeting reports}
+\label{app:meetings}
+%TODO: docs/meetings/2026-10-15.md, 2026-10-26.md and 2026-11-26.md: attendees, done,
+% decisions, next.
+
+\end{document}
