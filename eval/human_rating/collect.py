@@ -10,10 +10,11 @@ multi_county) and keeps one record per warning: the raw text the model wrote
 meaning check in harness/assemble.py kept it or replaced it (with the reason from digest.json).
 
 The records get rating ids S01.. in a shuffled order, so the sheets do not group by case.
-Writes eval/human_rating/summaries.json and two identical blank sheets, rating_kim.csv and
-rating_adne.csv (semicolon-separated, UTF-8 with BOM for Norwegian Excel). The sheets show only
+Writes eval/human_rating/summaries.json and two identical blank sheets, rating_kim.csv (Kim) and
+rating_llm.csv (rater 2, the LLM judge; see LLM_JUDGE.md) (semicolon-separated, UTF-8 with BOM for Norwegian Excel). The sheets show only
 id, level, summary and empty rating columns: no case name and no meaning-check decision.
-Refuses to overwrite a sheet that already has ratings in it.
+Refuses to run if either sheet already has ratings in it, before any model call or file write, so
+the rated sheets and the summaries.json they belong to are never overwritten.
 Needs a running Ollama with the model from OLLAMA_MODEL (default llama3.2:3b).
 """
 import csv
@@ -31,7 +32,7 @@ CASES = ROOT / "eval" / "cases"
 OUT = ROOT / "out"
 RUN = ROOT / "harness" / "run.py"
 SUMMARIES = HERE / "summaries.json"
-SHEETS = [HERE / "rating_kim.csv", HERE / "rating_adne.csv"]
+SHEETS = [HERE / "rating_kim.csv", HERE / "rating_llm.csv"]
 COLUMNS = ["id", "level", "summary", "R1_norwegian", "R2_meaning", "R3_useful", "R4_forward", "comment"]
 RATINGS = COLUMNS[3:]
 LEVEL_NAMES = {2: "gult", 3: "oransje", 4: "rødt"}   # same as harness/normalise.py
@@ -87,7 +88,7 @@ def main(argv):
     cases = [c.strip() for c in arg(argv, "--cases", DEFAULT_CASES).split(",") if c.strip()]
     for s in SHEETS:
         if sheet_has_ratings(s):
-            sys.exit(f"{s.name} already has ratings; refusing to overwrite it.")
+            sys.exit(f"{s.name} already has ratings; refusing to overwrite it or summaries.json.")
     env = dict(os.environ, LLM_PROVIDER="ollama", OLLAMA_TEMPERATURE=str(temperature))
     model = env.get("OLLAMA_MODEL", "llama3.2:3b")
 
