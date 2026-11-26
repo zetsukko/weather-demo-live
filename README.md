@@ -75,7 +75,21 @@ All cases except `real_2610` are derived from it; each `expected.json` has `deri
 
 ## Automatic daily run
 
-`.github/workflows/digest.yml` runs the offline check and then a live run every day at 05:15 UTC, and uploads `out/` as an artifact. The GitHub runner has no local model, so this run uses the template summaries; summaries written by the model come from local runs with Ollama. The workflow still passes the `ANTHROPIC_API_KEY` secret; it is unused while the secret is not set, and setting it later switches the Actions run to the Anthropic API. Start a run by hand from the Actions tab with "Run workflow".
+The daily live run happens on our own Windows machine through Windows Task Scheduler, every day at 07:15 local time. It used to run on GitHub Actions, but since mid-November Actions has been blocked for the account by a billing lock (the student plan expired), so every scheduled run failed before it started. We noticed when the daily runs began failing. The local machine also runs Ollama, so the scheduled run now writes its summaries with the real model instead of the template.
+
+`scripts/daily_run.bat` changes to the repo root, sets `LLM_PROVIDER=ollama` (unless it is already set), runs `py harness/run.py`, and appends the output to `logs/daily_run.log` with start and end timestamps and the exit code (0/1/2, see `harness/run.py`). `logs/` is git-ignored. The digest is written to `out/` as usual.
+
+Register the task once (run it in a normal, non-admin terminal as the user who will own it; replace `<repo>` with the full path to the clone):
+
+```
+schtasks /Create /TN "Varsel Innlandet daily run" /TR "<repo>\scripts\daily_run.bat" /SC DAILY /ST 07:15 /IT /F
+```
+
+- `/IT` means the task runs only while that user is logged on (a locked screen counts as logged on). This is deliberate: on Windows, Ollama is started by the user's login, so a run with nobody logged on would find no model and fall back to the template summaries.
+- If the machine is off or asleep at 07:15, the run is skipped. On a laptop, Task Scheduler by default also skips the run on battery power. Both can be changed in Task Scheduler (the task's Conditions and Settings tabs).
+- Test it: `schtasks /Run /TN "Varsel Innlandet daily run"`, then read `logs/daily_run.log`. Remove it: `schtasks /Delete /TN "Varsel Innlandet daily run" /F`.
+
+`.github/workflows/digest.yml` no longer has a schedule; it keeps `workflow_dispatch` so it can be started by hand from the Actions tab once Actions works again. The GitHub runner has no local model, so a run there uses the template summaries, or the Anthropic API if the `ANTHROPIC_API_KEY` secret is set.
 
 ## Context files
 

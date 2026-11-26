@@ -1,7 +1,10 @@
+# No schedule trigger since task 009: GitHub Actions is blocked for this account by a billing
+# lock (the student plan expired in mid-November), so every scheduled run failed before it
+# started. The daily run now happens on the local machine through Windows Task Scheduler
+# (scripts/daily_run.bat, see README "Automatic daily run"), where Ollama also runs.
+# workflow_dispatch is kept so the workflow can be started by hand once Actions works again.
 name: Daily hazard digest
 on:
-  schedule:
-    - cron: "15 5 * * *"
   workflow_dispatch:
 permissions:
   contents: read
