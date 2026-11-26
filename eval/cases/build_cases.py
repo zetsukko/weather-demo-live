@@ -8,6 +8,7 @@ and is not touched by this script.
 """
 import copy
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -33,10 +34,27 @@ def write(name, data):
     (folder / "nve.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+# Colour word for each level. The fixture's text says "gult nivå"; a raised level must say its own
+# colour too, or the case contradicts itself and a model that copies the text looks wrong (task 011).
+COLOURS = {"2": "gult", "3": "oransje", "4": "rødt"}
+TEXT_FIELDS = ("MainText", "WarningText", "AdviceText", "ConsequenceText")
+
+
 def set_level(level):
     data = load()
+    colour = COLOURS.get(level)
+    replaced = 0
     for r in warning_records(data):
         r["ActivityLevel"] = level
+        if colour:
+            for field in TEXT_FIELDS:
+                text = r.get(field)
+                if isinstance(text, str):
+                    new = re.sub(r"\b([Gg])ult nivå", lambda m: (colour.capitalize() if m.group(1) == "G" else colour) + " nivå", text)
+                    replaced += new != text
+                    r[field] = new
+    if colour and colour != "gult":
+        assert replaced, f"no 'gult nivå' found to replace for level {level}; check the fixture text"
     return data
 
 
