@@ -25,13 +25,30 @@ def innlandet_municipalities(rec):
     return names
 
 
+def parse_level(value, wid):
+    """NVE ActivityLevel as an int. A missing level counts as 0 (no warning), as before."""
+    if value in (None, ""):
+        return 0
+    if isinstance(value, bool) or not (isinstance(value, int) or (isinstance(value, str) and value.strip().isdigit())):
+        sys.exit(f"NVE warning {wid} has ActivityLevel {value!r}, not a whole number; no digest produced.")
+    return int(value)
+
+
 def normalise(raw):
     by_id = {}
     for rec in raw:
-        level = int(rec.get("ActivityLevel") or 0)
-        if level < common.MIN_LEVEL or common.INNLANDET not in county_ids(rec):
-            continue
+        # Malformed records stop the run with a clear message instead of a crash.
+        if rec.get("Id") in (None, ""):
+            sys.exit("NVE record without Id; no digest produced.")
         wid = str(rec["Id"])
+        level = parse_level(rec.get("ActivityLevel"), wid)
+        if level < common.MIN_LEVEL:
+            continue
+        # An active warning with no county list could be for Innlandet: never give a silent all-clear.
+        if not rec.get("CountyList"):
+            sys.exit(f"NVE warning {wid} has no CountyList, so we cannot tell if it is for Innlandet; no digest produced.")
+        if common.INNLANDET not in county_ids(rec):
+            continue
         # A warning without a validity period cannot be checked or acted on: stop.
         missing = [f for f in ("ValidFrom", "ValidTo") if not rec.get(f)]
         if missing:

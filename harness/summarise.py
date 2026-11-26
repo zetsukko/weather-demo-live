@@ -107,7 +107,9 @@ def _call_ollama(warnings):
                      {"role": "user", "content": user}],
         "stream": False,
         "format": "json",
-        "options": {"temperature": 0, "num_predict": common.MAX_TOKENS},
+        # OLLAMA_TEMPERATURE is for stress tests (eval/run_stress.py); normal runs stay at 0.
+        "options": {"temperature": float(os.environ.get("OLLAMA_TEMPERATURE") or 0),
+                    "num_predict": common.MAX_TOKENS},
     }).encode("utf-8")
     req = urllib.request.Request(host + "/api/chat", data=body, method="POST",
                                  headers={"content-type": "application/json"})

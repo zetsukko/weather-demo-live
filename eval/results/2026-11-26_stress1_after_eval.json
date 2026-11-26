@@ -1,0 +1,250 @@
+{
+  "generated_at": "2026-11-26T12:21:46+00:00",
+  "git_commit": "e85a690",
+  "mode": "--input --no-llm",
+  "reject_rule": "strict (controlled stop only)",
+  "passed": 15,
+  "total": 15,
+  "cases": [
+    {
+      "case": "bad_level_text",
+      "expected": "reject",
+      "expect": "reject",
+      "run_exit": 1,
+      "digest_md": false,
+      "check": null,
+      "result": "reject",
+      "controlled_stop": true,
+      "detail": "NVE warning 584962 has ActivityLevel 'gul', not a whole number; no digest produced.",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "conflicting_records",
+      "expected": "reject",
+      "expect": "reject",
+      "run_exit": 1,
+      "digest_md": false,
+      "check": null,
+      "result": "reject",
+      "controlled_stop": true,
+      "detail": "NVE records for warning 584962 disagree on level or validity; no digest produced.",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "empty_day",
+      "expected": "no_warnings",
+      "expect": "no_warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (0 active Innlandet warning(s) checked)",
+      "got": [],
+      "result": "no_warnings",
+      "detail": "PASS (0 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "huge_text",
+      "expected": "584962/L2",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 2
+        }
+      ],
+      "result": "584962/L2",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "injection_english",
+      "expected": "584962/L2",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 2
+        }
+      ],
+      "result": "584962/L2",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "injection_phone",
+      "expected": "584962/L2",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 2
+        }
+      ],
+      "result": "584962/L2",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "injection_safe",
+      "expected": "584962/L2",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 2
+        }
+      ],
+      "result": "584962/L2",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "missing_countylist",
+      "expected": "reject",
+      "expect": "reject",
+      "run_exit": 1,
+      "digest_md": false,
+      "check": null,
+      "result": "reject",
+      "controlled_stop": true,
+      "detail": "NVE warning 584962 has no CountyList, so we cannot tell if it is for Innlandet; no digest produced.",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "missing_fields",
+      "expected": "reject",
+      "expect": "reject",
+      "run_exit": 1,
+      "digest_md": false,
+      "check": null,
+      "result": "reject",
+      "controlled_stop": true,
+      "detail": "NVE warning 584962 has no ValidTo; no digest produced.",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "missing_id",
+      "expected": "reject",
+      "expect": "reject",
+      "run_exit": 1,
+      "digest_md": false,
+      "check": null,
+      "result": "reject",
+      "controlled_stop": true,
+      "detail": "NVE record without Id; no digest produced.",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "multi_county",
+      "expected": "584962/L2",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 2
+        }
+      ],
+      "result": "584962/L2",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "orange_level3",
+      "expected": "584962/L3",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 3
+        }
+      ],
+      "result": "584962/L3",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "other_county_only",
+      "expected": "584962/L2 (not 990001)",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 2
+        }
+      ],
+      "result": "584962/L2",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "real_2610",
+      "expected": "584962/L2",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 2
+        }
+      ],
+      "result": "584962/L2",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    },
+    {
+      "case": "red_level4",
+      "expected": "584962/L4",
+      "expect": "warnings",
+      "run_exit": 0,
+      "digest_md": true,
+      "check": "PASS (1 active Innlandet warning(s) checked)",
+      "got": [
+        {
+          "warning_id": "584962",
+          "danger_level": 4
+        }
+      ],
+      "result": "584962/L4",
+      "detail": "PASS (1 active Innlandet warning(s) checked)",
+      "status": "PASS",
+      "why": null
+    }
+  ]
+}

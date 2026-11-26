@@ -1,0 +1,6 @@
+{
+  "case": "missing_countylist",
+  "expect": "reject",
+  "derived_from": "real_2610",
+  "description": "CountyList removed from all five 584962 records: we cannot tell if the warning is for Innlandet, so the run must stop rather than silently drop it."
+}
