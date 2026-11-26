@@ -9,7 +9,9 @@ PROMPTS = ROOT / "prompts"
 
 USER_AGENT = "weather-demo-live/0.2 github.com/zetsukko/weather-demo-live"
 
-NVE_FLOOD_BASE = "https://api01.nve.no/hydrology/forecast/flood/v1.0.10"
+# NVE_FLOOD_BASE can be overridden for dependency tests (eval/run_deps.py); default is the real API.
+NVE_FLOOD_BASE = (os.environ.get("NVE_FLOOD_BASE") or
+                  "https://api01.nve.no/hydrology/forecast/flood/v1.0.10").rstrip("/")
 INNLANDET = "34"          # county number (fylkesnummer)
 LANG_NO = "1"             # NVE language key: 1 = Norwegian
 MIN_LEVEL = 2             # NVE activity level 2 (yellow) and above counts as active

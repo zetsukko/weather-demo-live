@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-11-26T12:38:02+00:00",
+  "git_commit": "c52e785",
+  "mode": "live run.py, local test server",
+  "limit_seconds": 600,
+  "cases": [
+    {
+      "case": "nve_unreachable",
+      "scenario": "NVE unreachable (bad host)",
+      "exit": 1,
+      "seconds": 0.2,
+      "hung": false,
+      "message": "NVE API unreachable ([Errno 11001] getaddrinfo failed); no digest produced. Try --offline.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_503",
+      "scenario": "NVE returns HTTP 503",
+      "exit": 1,
+      "seconds": 0.1,
+      "hung": false,
+      "message": "NVE API returned HTTP 503; no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_404",
+      "scenario": "NVE returns HTTP 404",
+      "exit": 1,
+      "seconds": 0.1,
+      "hung": false,
+      "message": "NVE API returned HTTP 404; no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_hang",
+      "scenario": "NVE never answers",
+      "exit": 1,
+      "seconds": 30.3,
+      "hung": false,
+      "message": "CRASH: TimeoutError: timed out",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_html",
+      "scenario": "NVE returns HTML (200)",
+      "exit": 1,
+      "seconds": 0.2,
+      "hung": false,
+      "message": "NVE response is not valid JSON; no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "ollama_down",
+      "scenario": "Ollama not running",
+      "exit": 1,
+      "seconds": 2.2,
+      "hung": false,
+      "message": "Ollama (llama3.2:3b) unreachable ([WinError 10061] No connection could be made because the target machine actively refused it); no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": [
+        "raw_nve_flood.json",
+        "warnings.json"
+      ]
+    },
+    {
+      "case": "ollama_hang",
+      "scenario": "Ollama never answers",
+      "exit": 1,
+      "seconds": 300.2,
+      "hung": false,
+      "message": "Ollama (llama3.2:3b) failed (timed out); no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": [
+        "raw_nve_flood.json",
+        "warnings.json"
+      ]
+    }
+  ]
+}
