@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-26T12:00:13+00:00",
-  "git_commit": "1f05a8e",
+  "generated_at": "2026-11-26T12:04:46+00:00",
+  "git_commit": "80215c1",
   "mode": "--input --no-llm",
-  "passed": 7,
+  "passed": 8,
   "total": 8,
   "cases": [
     {
@@ -34,19 +34,13 @@
       "case": "missing_fields",
       "expected": "reject",
       "expect": "reject",
-      "run_exit": 0,
-      "digest_md": true,
-      "check": "PASS (1 active Innlandet warning(s) checked)",
-      "got": [
-        {
-          "warning_id": "584962",
-          "danger_level": 2
-        }
-      ],
-      "result": "584962/L2",
-      "detail": "PASS (1 active Innlandet warning(s) checked)",
-      "status": "FAIL",
-      "why": "expected the run to stop without a digest, but it exited 0 and produced one (584962/L2); check said: PASS (1 active Innlandet warning(s) checked)"
+      "run_exit": 1,
+      "digest_md": false,
+      "check": null,
+      "result": "reject",
+      "detail": "NVE warning 584962 has no ValidTo; no digest produced.",
+      "status": "PASS",
+      "why": null
     },
     {
       "case": "multi_county",
