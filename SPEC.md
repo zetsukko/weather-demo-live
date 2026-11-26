@@ -42,7 +42,7 @@ Raw responses are saved to `fixtures/` so the pipeline and checks can run with `
 
 ## Summary model
 
-The summary step uses a local model, `llama3.2:3b` served by Ollama (`LLM_PROVIDER=ollama` in `.env`). This keeps the cost of a run at zero and the warning data local. The daily GitHub Actions run has no local model and uses the template fallback. A small local model may write weaker Norwegian; this is measured in the evaluation.
+The summary step uses a local model, `llama3.2:3b` served by Ollama (`LLM_PROVIDER=ollama` in `.env`). This keeps the cost of a run at zero and the warning data local. The daily run is scheduled with Windows Task Scheduler on the same machine that runs Ollama (`scripts/daily_run.bat`), so it uses the model too. It moved there from GitHub Actions in task 009, after Actions was blocked for the account by a billing lock (the student plan expired in mid-November). A small local model may write weaker Norwegian; this is measured in the evaluation.
 
 ## Output
 
@@ -79,7 +79,7 @@ Readability and usefulness are not binary; they will be judged later with a docu
 - Sending messages automatically (email, SMS, push). A human reads the digest and decides what to send.
 - Making our own risk assessments or reinterpreting official danger levels.
 - Areas outside Innlandet.
-- Hosting a website or sending notifications. The daily run is scheduled with GitHub Actions; its output is an artifact a person reads.
+- Hosting a website or sending notifications. The daily run is scheduled with Windows Task Scheduler on a local machine (GitHub Actions until task 009); its output is `out/digest.md` and a log in `logs/`, which a person reads.
 
 ## Open questions for the lecturer
 

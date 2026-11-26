@@ -21,3 +21,6 @@ Claude outputs/
 
 # Obsidian vault settings
 .obsidian/
+
+# Local scheduled-run logs
+logs/
