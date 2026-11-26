@@ -51,8 +51,10 @@ def main(argv):
     mode, summaries = summarise(warnings, offline=offline, no_llm=no_llm, save_fixture=save)
     print(f"[3 summarise] mode={mode}, {len(summaries)} summary(ies)")
 
-    assemble(warnings, summaries, mode)
+    digest = assemble(warnings, summaries, mode)
     print(f"[4 assemble]  wrote {common.DIGEST_JSON.relative_to(common.ROOT)} and digest.md")
+    for f in digest["fallback"]:
+        print(f"              fallback to template for {f['warning_id']}: {f['reason']}")
 
     result = subprocess.run([sys.executable, str(common.ROOT / "eval" / "check_digest.py")])
     print(f"[5 check]     exit {result.returncode}")
