@@ -42,6 +42,7 @@ Files it writes:
 
 - Only `out/`: `raw_nve_flood.json`, `warnings.json`, `summaries.json`, `digest.json`, `digest.md`. All five are deleted at the start of every run, so an old digest cannot fake a PASS (`harness/run.py:43-46`).
 - `fixtures/` only with `--save-fixture` (`harness/fetch.py:89-91`, `harness/summarise.py:200-201`).
+- `logs/daily_run.log`: not written by `run.py` itself, but appended by `scripts/daily_run.bat` on the scheduled run (see below).
 
 Files it reads: `fixtures/` (offline), `prompts/digest.md` (model instructions), and `.env` through `load_dotenv`. That happens only on the live model path (`harness/summarise.py:180`), and the loader never prints values (`harness/common.py:88-98`).
 
@@ -127,7 +128,8 @@ The kill switch stops one run. This criterion is a rule we set for the operators
 2. **The source changed.** NVE retires API v1.0.10 (stop #1) or changes the response format, and no fix has been merged.
 3. **No checked digest for 3 days.** Live runs fail to produce a checked digest (exit 1 or 2) on 3 consecutive days. Recipients may by then rely on a digest that is not arriving.
 4. **A secret leaked.** A key or token appears in the repository, a log or a CI artifact. Revoke it first; resume after the leak path is closed.
-5. **The model adds nothing.** With the model on, most live digests fall back to the template (`summary_mode: "fallback"`). Stop using the model and run template-only (`--no-llm`), because the model is then only a source of risk.
+
+One weaker rule does not stop the system, only the model: if most live digests with the model on fall back to the template (`summary_mode: "fallback"`), stop using the model and run template-only (`--no-llm`), because the model then adds risk and no value.
 
 ## Known gaps
 
