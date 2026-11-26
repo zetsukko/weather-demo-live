@@ -6,6 +6,11 @@ Meaning check: a model summary that drops the colour word for its level, says th
 "utsatt" (postponed), "avlyst" (cancelled) or "ingen fare", is replaced by the template
 summary built from the official fields. The digest then has summary_mode "fallback" and
 lists the reason per warning. The model's original text stays in out/summaries.json.
+Stage 3 can hand in fallbacks of its own (model unavailable); they are listed the same way.
+
+Data source: info from fetch.data_info() says whether the data is live or saved and when NVE
+published it. For saved data (--offline, --input) the heading and digest.json say
+"Lagrede data fra <tid>, ikke dagens varsler", so an old digest cannot pass for today's.
 """
 import json
 import re
@@ -35,8 +40,9 @@ def meaning_problem(summary, level):
 NO_WARNINGS = "Ingen aktive flomvarsler (gult nivå eller høyere) for Innlandet i perioden."
 
 
-def assemble(warnings, summaries, mode):
-    fallback = []
+def assemble(warnings, summaries, mode, fallback=None, info=None):
+    fallback = list(fallback or [])
+    info = info or {"data_source": None, "data_published": None, "data_note": None}
     if mode in ("llm", "replay"):
         summaries = dict(summaries)
         for w in warnings:
@@ -59,6 +65,9 @@ def assemble(warnings, summaries, mode):
     digest = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "region": "Innlandet (fylke 34)",
+        "data_source": info["data_source"],
+        "data_published": info["data_published"],
+        "data_note": info["data_note"],
         "summary_mode": mode,
         "fallback": fallback,
         "attribution": common.ATTRIBUTION,
@@ -67,7 +76,10 @@ def assemble(warnings, summaries, mode):
     }
     common.DIGEST_JSON.write_text(json.dumps(digest, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    lines = [f"# Farevarsler for Innlandet ({digest['generated_at'][:10]})", ""]
+    if info["data_note"]:
+        lines = [f"# Farevarsler for Innlandet: {info['data_note']}", ""]
+    else:
+        lines = [f"# Farevarsler for Innlandet ({digest['generated_at'][:10]})", ""]
     if not entries:
         lines.append(NO_WARNINGS)
     for e in entries:

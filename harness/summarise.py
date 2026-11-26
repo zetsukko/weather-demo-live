@@ -9,6 +9,10 @@ Modes:
               otherwise Anthropic Messages API (needs ANTHROPIC_API_KEY)
   replay    - --offline: reuse fixtures/llm_summaries.json if it covers every warning
   template  - no key, or --no-llm: deterministic text built from the official fields
+  fallback  - LLM_PROVIDER=ollama but the model is down, times out (common.OLLAMA_TIMEOUT for
+              the whole call) or errors: template summaries, reason "model unavailable: ..."
+              (the facts come from code anyway, so the digest is still complete and checked)
+An Anthropic API failure stops the run with exit code 2 (common.EXIT_SERVICE).
 """
 import json
 import os
@@ -78,16 +82,29 @@ def _messages(warnings):
     return system, user
 
 
+class ServiceError(Exception):
+    """The model service could not give an answer (down, timed out, HTTP error, not JSON)."""
+
+
+def _read(req, timeout):
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read())
+
+
 def _post(req, name, timeout):
+    """POST with a total time limit for the whole call; raises ServiceError on any failure."""
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read())
+        return common.call_with_deadline(lambda: _read(req, timeout), timeout)
     except urllib.error.HTTPError as e:
-        sys.exit(f"{name} returned HTTP {e.code}; no digest produced.")
+        raise ServiceError(f"{name} returned HTTP {e.code}") from None
     except urllib.error.URLError as e:
-        sys.exit(f"{name} unreachable ({e.reason}); no digest produced.")
-    except (TimeoutError, json.JSONDecodeError) as e:
-        sys.exit(f"{name} failed ({e}); no digest produced.")
+        if isinstance(e.reason, TimeoutError):
+            raise ServiceError(f"{name} timed out after {timeout} s") from None
+        raise ServiceError(f"{name} unreachable ({e.reason})") from None
+    except TimeoutError:
+        raise ServiceError(f"{name} timed out after {timeout} s") from None
+    except (OSError, json.JSONDecodeError) as e:
+        raise ServiceError(f"{name} failed ({e})") from None
 
 
 def _parse(text):
@@ -114,7 +131,10 @@ def _call_llm(warnings, api_key):
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     })
-    reply = _post(req, "LLM API", 120)
+    try:
+        reply = _post(req, "LLM API", 120)
+    except ServiceError as e:
+        common.stop(f"{e}; no digest produced.", common.EXIT_SERVICE)
     text = "".join(b.get("text", "") for b in reply.get("content", []) if b.get("type") == "text")
     usage = reply.get("usage", {})
     print(f"LLM usage: {usage.get('input_tokens')} input / {usage.get('output_tokens')} output tokens")
@@ -139,16 +159,17 @@ def _call_ollama(warnings):
     }).encode("utf-8")
     req = urllib.request.Request(host + "/api/chat", data=body, method="POST",
                                  headers={"content-type": "application/json"})
-    # A local model on CPU can be slow, hence the long timeout.
-    reply = _post(req, f"Ollama ({model})", 300)
+    # A normal run takes 4-12 s on CPU; ServiceError on failure is handled by summarise().
+    reply = _post(req, f"Ollama ({model})", common.OLLAMA_TIMEOUT)
     text = (reply.get("message") or {}).get("content", "")
     print(f"LLM usage ({model}): {reply.get('prompt_eval_count')} input / {reply.get('eval_count')} output tokens")
     return _parse(text)
 
 
 def summarise(warnings, offline=False, no_llm=False, save_fixture=False):
+    """Returns (mode, summaries, fallback); fallback lists {warning_id, reason} per warning."""
     ids = [w["warning_id"] for w in warnings]
-    mode, summaries = "template", {}
+    mode, summaries, fallback = "template", {}, []
     if not warnings:
         mode = "none"
     elif offline and common.FIXTURE_LLM.exists():
@@ -159,7 +180,13 @@ def summarise(warnings, offline=False, no_llm=False, save_fixture=False):
         common.load_dotenv()
         key = os.environ.get("ANTHROPIC_API_KEY")
         if os.environ.get("LLM_PROVIDER", "").lower() == "ollama":
-            mode, summaries = "llm", _call_ollama(warnings)
+            try:
+                mode, summaries = "llm", _call_ollama(warnings)
+            except ServiceError as e:
+                print(f"MODEL UNAVAILABLE: {e}. Using template summaries; facts come from code.")
+                mode = "fallback"
+                summaries = {w["warning_id"]: template_summary(w) for w in warnings}
+                fallback = [{"warning_id": i, "reason": f"model unavailable: {e}"} for i in ids]
         elif key:
             mode, summaries = "llm", _call_llm(warnings, key)
         else:
@@ -172,4 +199,4 @@ def summarise(warnings, offline=False, no_llm=False, save_fixture=False):
                                                 ensure_ascii=False, indent=2), encoding="utf-8")
     if save_fixture and mode == "llm":
         common.FIXTURE_LLM.write_text(json.dumps(summaries, ensure_ascii=False, indent=2), encoding="utf-8")
-    return mode, summaries
+    return mode, summaries, fallback

@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-11-26T12:59:55+00:00",
+  "git_commit": "f89b353",
+  "mode": "live run.py, local test server",
+  "limit_seconds": 600,
+  "cases": [
+    {
+      "case": "nve_unreachable",
+      "scenario": "NVE unreachable (bad host)",
+      "exit": 2,
+      "seconds": 0.2,
+      "hung": false,
+      "message": "NVE API unreachable ([Errno 11001] getaddrinfo failed); no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_503",
+      "scenario": "NVE returns HTTP 503",
+      "exit": 2,
+      "seconds": 5.2,
+      "hung": false,
+      "message": "NVE API returned HTTP 503; no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_404",
+      "scenario": "NVE returns HTTP 404",
+      "exit": 2,
+      "seconds": 0.1,
+      "hung": false,
+      "message": "NVE API returned HTTP 404; the API version v1.0.10 may have been retired, check https://api.nve.no/doc/flomvarsling/; no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_hang",
+      "scenario": "NVE never answers",
+      "exit": 2,
+      "seconds": 65.2,
+      "hung": false,
+      "message": "NVE API timed out; no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "nve_html",
+      "scenario": "NVE returns HTML (200)",
+      "exit": 2,
+      "seconds": 0.1,
+      "hung": false,
+      "message": "NVE response is not valid JSON; no digest produced.",
+      "digest_produced": false,
+      "stale_output_left": [],
+      "out_files_left": []
+    },
+    {
+      "case": "ollama_down",
+      "scenario": "Ollama not running",
+      "exit": 0,
+      "seconds": 2.3,
+      "hung": false,
+      "message": "MODEL UNAVAILABLE: Ollama (llama3.2:3b) unreachable ([WinError 10061] No connection could be made because the target machine actively refused it). Using template summaries; facts come from code. Run exit 0, check passed.",
+      "digest_produced": true,
+      "stale_output_left": [],
+      "out_files_left": [
+        "digest.json",
+        "digest.md",
+        "raw_nve_flood.json",
+        "summaries.json",
+        "warnings.json"
+      ]
+    },
+    {
+      "case": "ollama_hang",
+      "scenario": "Ollama never answers",
+      "exit": 0,
+      "seconds": 60.3,
+      "hung": false,
+      "message": "MODEL UNAVAILABLE: Ollama (llama3.2:3b) timed out after 60 s. Using template summaries; facts come from code. Run exit 0, check passed.",
+      "digest_produced": true,
+      "stale_output_left": [],
+      "out_files_left": [
+        "digest.json",
+        "digest.md",
+        "raw_nve_flood.json",
+        "summaries.json",
+        "warnings.json"
+      ]
+    }
+  ]
+}

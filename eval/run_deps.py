@@ -26,7 +26,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -65,7 +65,13 @@ class Handler(BaseHTTPRequestHandler):
                             b"<body><h1>Tjenesten er midlertidig utilgjengelig</h1></body></html>",
                        "text/html; charset=utf-8")
         else:
-            self._send(200, FIXTURE.read_bytes(), "application/json; charset=utf-8")
+            # A healthy NVE: the saved response, stamped as published now so that a live run
+            # is not (rightly) rejected by eval/check_freshness.py for 26.10 data.
+            now = datetime.now(timezone(timedelta(hours=1))).strftime("%Y-%m-%dT%H:%M:%S")
+            data = json.loads(FIXTURE.read_text(encoding="utf-8"))
+            for r in data:
+                r["PublishTime"] = r["CreatedTime"] = now
+            self._send(200, json.dumps(data, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
 
     def do_POST(self):
         # Fake Ollama: only the hanging variant is needed.
@@ -99,6 +105,9 @@ def message(output):
     for l in lines:
         if "no digest produced" in l or l.startswith("FAIL") or "KILL SWITCH" in l:
             return l
+    for l in lines:
+        if l.startswith("MODEL UNAVAILABLE"):
+            return l + " Run exit " + ("0, check passed." if "[5 check]     exit 0" in output else "non-zero.")
     return lines[-1] if lines else ""
 
 
