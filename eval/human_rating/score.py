@@ -2,7 +2,7 @@
 
   py eval/human_rating/score.py [--dir DIR] [--out DIR]
 
-Reads rating_kim.csv, rating_adne.csv and summaries.json (from --dir, default this folder)
+Reads rating_kim.csv (Kim), rating_llm.csv (rater 2, an LLM judge; see LLM_JUDGE.md) and summaries.json (from --dir, default this folder)
 and writes <out>/<today>_human_rating.md and .json (default eval/results/) with:
   - % yes per criterion (R1-R4) per rater and on average
   - agreement between the raters per criterion: % and Cohen's kappa
@@ -20,7 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 HERE = Path(__file__).resolve().parent
-RATERS = {"kim": "rating_kim.csv", "adne": "rating_adne.csv"}
+RATERS = {"kim": "rating_kim.csv", "llm": "rating_llm.csv"}
+LABELS = {"kim": "Kim", "llm": "LLM judge"}   # how each rater is named in the report
 CRITERIA = {"R1_norwegian": "R1 correct Norwegian", "R2_meaning": "R2 correct meaning",
             "R3_useful": "R3 useful", "R4_forward": "R4 would forward unchanged"}
 
@@ -128,7 +129,7 @@ def main(argv):
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
     today = datetime.now().date().isoformat()
     result = {
-        "generated_at": stamp, "n": n, "raters": list(RATERS),
+        "generated_at": stamp, "n": n, "raters": list(RATERS), "rater_labels": LABELS,
         "model": key.get("model"), "temperature": key.get("temperature"), "cases": key.get("cases"),
         "criteria": per_criterion,
         "meaning_check_vs_r4": table, "r4_disagreements": disagree,
@@ -138,10 +139,11 @@ def main(argv):
     (out_dir / f"{today}_human_rating.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    r1, r2 = RATERS
+    r1, r2 = (LABELS[r] for r in RATERS)
+    k1, k2 = RATERS
     md = ["# Human rating of model summaries", "",
           f"Generated {stamp}. {n} summaries by `{key.get('model')}` (temperature {key.get('temperature')}), "
-          f"cases {', '.join(key.get('cases') or [])}, rated by {r1} and {r2} on their own "
+          f"cases {', '.join(key.get('cases') or [])}, rated by {r1} and {r2} (see `eval/human_rating/LLM_JUDGE.md`) independently "
           "(1 = yes, 0 = no; rules in `eval/human_rating/GUIDE.md`).", "",
           "## Share of yes, and agreement", "",
           f"| criterion | {r1} | {r2} | average | agreement | Cohen's kappa |",
@@ -149,7 +151,7 @@ def main(argv):
     for c, label in CRITERIA.items():
         s = per_criterion[c]
         k = "n/a (same value everywhere)" if s["kappa"] is None else f"{s['kappa']:.2f}"
-        md.append(f"| {label} | {pct(s['yes'][r1])} | {pct(s['yes'][r2])} | {pct(s['yes_average'])} | "
+        md.append(f"| {label} | {pct(s['yes'][k1])} | {pct(s['yes'][k2])} | {pct(s['yes_average'])} | "
                   f"{pct(s['agreement'])} | {k} |")
     agreed = n - len(disagree)
     md += ["", "## Meaning check against R4", "",

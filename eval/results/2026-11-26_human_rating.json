@@ -1,0 +1,328 @@
+{
+  "generated_at": "2026-11-26T15:01:30+00:00",
+  "n": 20,
+  "raters": [
+    "kim",
+    "llm"
+  ],
+  "rater_labels": {
+    "kim": "Kim",
+    "llm": "LLM judge"
+  },
+  "model": "llama3.2:3b",
+  "temperature": 0.7,
+  "cases": [
+    "real_2610",
+    "orange_level3",
+    "red_level4",
+    "multi_county"
+  ],
+  "criteria": {
+    "R1_norwegian": {
+      "yes": {
+        "kim": 0.55,
+        "llm": 0.25
+      },
+      "yes_average": 0.4,
+      "agreement": 0.5,
+      "kappa": 0.04761904761904766
+    },
+    "R2_meaning": {
+      "yes": {
+        "kim": 0.95,
+        "llm": 0.35
+      },
+      "yes_average": 0.6499999999999999,
+      "agreement": 0.3,
+      "kappa": -0.10236220472440945
+    },
+    "R3_useful": {
+      "yes": {
+        "kim": 1.0,
+        "llm": 0.7
+      },
+      "yes_average": 0.85,
+      "agreement": 0.7,
+      "kappa": 0.0
+    },
+    "R4_forward": {
+      "yes": {
+        "kim": 0.65,
+        "llm": 0.05
+      },
+      "yes_average": 0.35000000000000003,
+      "agreement": 0.4,
+      "kappa": 0.05511811023622052
+    }
+  },
+  "meaning_check_vs_r4": {
+    "kept": {
+      "forward": 1,
+      "not_forward": 3
+    },
+    "replaced": {
+      "forward": 0,
+      "not_forward": 4
+    }
+  },
+  "r4_disagreements": [
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S08",
+    "S09",
+    "S11",
+    "S12",
+    "S13",
+    "S16",
+    "S17",
+    "S18"
+  ],
+  "ratings": {
+    "kim": {
+      "S01": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S02": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S03": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S04": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S05": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S06": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S07": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S08": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S09": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S10": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S11": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S12": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S13": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S14": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S15": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S16": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S17": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S18": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S19": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S20": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      }
+    },
+    "llm": {
+      "S01": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S02": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 0,
+        "R4_forward": 0
+      },
+      "S03": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 0,
+        "R4_forward": 0
+      },
+      "S04": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 0,
+        "R4_forward": 0
+      },
+      "S05": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S06": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S07": {
+        "R1_norwegian": 1,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 1
+      },
+      "S08": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 0,
+        "R4_forward": 0
+      },
+      "S09": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 0,
+        "R4_forward": 0
+      },
+      "S10": {
+        "R1_norwegian": 1,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S11": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S12": {
+        "R1_norwegian": 1,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S13": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S14": {
+        "R1_norwegian": 0,
+        "R2_meaning": 1,
+        "R3_useful": 0,
+        "R4_forward": 0
+      },
+      "S15": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S16": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S17": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S18": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S19": {
+        "R1_norwegian": 0,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      },
+      "S20": {
+        "R1_norwegian": 1,
+        "R2_meaning": 0,
+        "R3_useful": 1,
+        "R4_forward": 0
+      }
+    }
+  }
+}

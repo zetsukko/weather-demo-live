@@ -4,7 +4,9 @@ The binary checks (`eval/check_digest.py`, the meaning check in `harness/assembl
 
 ## What you rate
 
-`rating_kim.csv` and `rating_adne.csv` are the same 20 summaries written by `llama3.2:3b` (Ollama, temperature 0.7). They are the model's own text, before any fallback to the template. Every summary is for the same real NVE flood warning (26.10.2026, five Innlandet municipalities), sometimes with the level raised to orange or red. The `level` column is the official level the summary must match: `gult` (2), `oransje` (3) or `rødt` (4).
+Rater 2 is an LLM judge, not a person; see `LLM_JUDGE.md`.
+
+`rating_kim.csv` and `rating_llm.csv` are the same 20 summaries written by `llama3.2:3b` (Ollama, temperature 0.7). They are the model's own text, before any fallback to the template. Every summary is for the same real NVE flood warning (26.10.2026, five Innlandet municipalities), sometimes with the level raised to orange or red. The `level` column is the official level the summary must match: `gult` (2), `oransje` (3) or `rødt` (4).
 
 The ids S01-S20 are in random order. The sheet does not show which test case a summary came from or what the automatic meaning check decided, so that this does not affect your rating.
 
