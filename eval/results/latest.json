@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-26T12:57:27+00:00",
-  "git_commit": "f89b353",
+  "generated_at": "2026-11-26T13:00:46+00:00",
+  "git_commit": "dd9eff1",
   "mode": "--input --no-llm",
   "reject_rule": "strict (controlled stop only)",
   "passed": 15,
