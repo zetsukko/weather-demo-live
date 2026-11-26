@@ -27,6 +27,11 @@ FIXTURE_LLM = FIXTURES / "llm_summaries.json"
 MAX_WARNINGS = 60
 MAX_TOKENS = 2000
 
+# Context window: each official text field is capped before it goes to the model,
+# and Ollama gets a window large enough for the capped prompt.
+MAX_TEXT_CHARS = 1500
+OLLAMA_NUM_CTX = 4096
+
 ATTRIBUTION = [
     "Flomvarsler fra NVE / Flomvarslingstjenesten (varsom.no), NLOD 2.0. "
     "Contains data under NLOD provided by NVE. Data levert 'som den er'.",
