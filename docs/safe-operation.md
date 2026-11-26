@@ -1,6 +1,6 @@
 # Safe operation
 
-How Varsel Innlandet is kept safe to run: what the coding agent and the runtime harness may touch, how secrets are kept out of the repo, what a run can cost, where a person must decide, and when a run (or the whole system) stops. Every statement describes the code as it is on master after task 007. File references are `path:line`. Known gaps are listed at the end, not hidden in the text.
+How Varsel Innlandet is kept safe to run: what the coding agent and the runtime harness may touch, how secrets are kept out of the repo, what a run can cost, where a person must decide, and when a run (or the whole system) stops. Every statement describes the code as it is on master after task 009. File references are `path:line`. Known gaps are listed at the end, not hidden in the text.
 
 ```
 NVE API -> 1 fetch -> 2 normalise -> 3 summarise (LLM) -> 4 assemble -> 5 check (exit 0/1/2)
@@ -45,14 +45,16 @@ Files it writes:
 
 Files it reads: `fixtures/` (offline), `prompts/digest.md` (model instructions), and `.env` through `load_dotenv`. That happens only on the live model path (`harness/summarise.py:180`), and the loader never prints values (`harness/common.py:88-98`).
 
-### Scheduled run (GitHub Actions)
+### Scheduled run (Windows Task Scheduler)
 
-`.github/workflows/digest.yml` runs once a day at 05:15 UTC and can also be started by hand (lines 3-5). The job token can only read the repository (`permissions: contents: read`, lines 6-7). The job is killed after 10 minutes (line 11). It runs the offline check first, then the live run, and uploads `out/` as an artifact kept for 30 days (lines 17-29). It cannot push, comment or send anything.
+Windows Task Scheduler runs `scripts/daily_run.bat` once a day at 07:15 local time. The task is registered with `schtasks` and `/IT`, so it runs only while the user is logged on (`README.md:85`). The script changes to the repo root (`scripts/daily_run.bat:7`), sets `LLM_PROVIDER=ollama` unless it is already set (line 12), runs `py harness\run.py`, and appends the output with start and end timestamps and the exit code to `logs/daily_run.log` (lines 18-22). `logs/` is git-ignored (`.gitignore:26`). The script runs as the logged-on user and does only what a live run does: it calls NVE and the local Ollama, writes `out/` and the log, and cannot push, comment or send anything.
+
+The GitHub workflow `.github/workflows/digest.yml` now has only `workflow_dispatch` (lines 7-8), no schedule, because the account's Actions billing was locked when the student plan expired (lines 1-5, `docs/prompt-log.md:31`). A manual run there still has a read-only token (lines 9-10) and a 10-minute job limit (line 14).
 
 ## 2. Secrets management
 
 - **Where keys live.** Only in `.env` (local) or GitHub repository secrets. `.env` and `.env.local` are git-ignored (`.gitignore:1-3`), as is `.claude/settings.local.json` (`.gitignore:6`). `.env.example` lists variable names with empty values and says "Never commit .env" (`.env.example:1`).
-- **No key is required.** Without `ANTHROPIC_API_KEY` the harness uses the local Ollama model or template summaries (`harness/summarise.py:182-193`). The CI workflow passes the `ANTHROPIC_API_KEY` secret (`digest.yml:20-21`), but the secret is not set, so CI uses templates.
+- **No key is required.** Without `ANTHROPIC_API_KEY` the harness uses the local Ollama model or template summaries (`harness/summarise.py:182-193`). The GitHub workflow passes the `ANTHROPIC_API_KEY` secret (`digest.yml:23-24`), but the secret is not set, so a manual GitHub run uses templates. The scheduled run is local and uses Ollama (`scripts/daily_run.bat:12`).
 - **Keys stay out of prompts.** The key is sent only in the `x-api-key` request header (`harness/summarise.py:129-133`). The model receives `prompts/digest.md` and the normalised warnings, nothing else (`harness/summarise.py:67-82`).
 - **Keys stay out of logs.** The harness prints token counts, not requests (`harness/summarise.py:140`, `:165`). Error messages carry only the HTTP status or the connection reason (`harness/summarise.py:98-107`). `load_dotenv` never prints values.
 - **Keys stay away from the coding agent.** The Read tool is denied `.env` and `.env.local` (`.claude/settings.json:4-5`), and CLAUDE.md says never to read or print `.env` or keys.
@@ -68,18 +70,18 @@ Files it reads: `fixtures/` (offline), `prompts/digest.md` (model instructions),
 | Ollama context window | 4096 tokens, so the capped prompt is not cut silently | `harness/common.py:78`, `harness/summarise.py:158` |
 | warnings per run | 60; more stops the run **before** the model is called | `harness/common.py:72`, `harness/run.py:58-61` |
 | time per call | NVE 30 s total plus one retry after 5 s (worst case about 65 s); Ollama 60 s; Anthropic 120 s | `harness/common.py:13-15`, `harness/summarise.py:135`, `:163` |
-| time per CI job | 10 minutes | `.github/workflows/digest.yml:11` |
-| runs per day (CI) | 1 scheduled, plus manual starts | `.github/workflows/digest.yml:3-5` |
+| time per GitHub job | 10 minutes; applies only to manual GitHub runs, the Task Scheduler run has no job limit beyond the per-call limits above | `.github/workflows/digest.yml:14` |
+| runs per day | 1 scheduled through Task Scheduler (07:15), plus manual starts | `README.md:85`, `.github/workflows/digest.yml:7-8` |
 
 The default model is the local `llama3.2:3b` through Ollama, which costs no API money, and warning data never leaves the machine. The Anthropic path is optional and is used only when a key is present. Templates (`--no-llm`, or no model configured) make no model call at all. Each live model run prints its token usage (`harness/summarise.py:140`, `:165`).
 
 ## 4. Human-in-the-loop gates
 
-**Automatic:** fetch, normalise, summarise, assemble and both checks, triggered by one command or the daily CI schedule. The checks (`eval/check_digest.py`, `eval/check_freshness.py`) decide automatically whether the digest may be used. If one fails, `digest.md` is deleted (`harness/run.py:72-79`).
+**Automatic:** fetch, normalise, summarise, assemble and both checks, triggered by one command or the daily Task Scheduler run. The checks (`eval/check_digest.py`, `eval/check_freshness.py`) decide automatically whether the digest may be used. If one fails, `digest.md` is deleted (`harness/run.py:72-79`).
 
 **Needs a person:**
 
-- **Passing a digest on.** Nothing is sent anywhere automatically. There is no e-mail, SMS, chat or web publishing in the code, and sending notifications is out of scope (`SPEC.md:82`). The result is `out/digest.md` (locally) or the CI artifact. A person reads it and decides what, if anything, to forward to the municipalities' emergency coordinators.
+- **Passing a digest on.** Nothing is sent anywhere automatically. There is no e-mail, SMS, chat or web publishing in the code, and sending notifications is out of scope (`SPEC.md:82`). The result is `out/digest.md` on the machine that ran it, including the daily scheduled run (or the artifact of a manual GitHub run). A person reads it and decides what, if anything, to forward to the municipalities' emergency coordinators.
 - **Refreshing the saved test data.** `--save-fixture` is a manual flag; CI never uses it.
 - **Changing the system.** Each task goes on its own branch and PR, the agent does not push unless asked, and checkers in `eval/` are not changed without asking (`CLAUDE.md`).
 
@@ -87,7 +89,7 @@ The default model is the local `llama3.2:3b` through Ollama, which costs no API 
 
 ## 5. Kill switch
 
-A run stops **without a digest** in every case below. The message goes to the terminal (and the CI log). Exit 2 means an outside service failed, and trying again later may help. Exit 1 means the data or the result cannot be trusted.
+A run stops **without a digest** in every case below. The message goes to the terminal (or `logs/daily_run.log` for the scheduled run). Exit 2 means an outside service failed, and trying again later may help. Exit 1 means the data or the result cannot be trusted.
 
 | # | condition | message (as printed) | exit | where |
 |---|---|---|---|---|
@@ -110,7 +112,7 @@ A run stops **without a digest** in every case below. The message goes to the te
 | 17 | `eval/check_digest.py` fails a property (completeness, no invention, fidelity, locality, grounded summary of at most 60 words with no numbers outside the source, attribution and no e-mail/phone, empty case) | `FAIL: property <n>: ...`, then `[5 check] exit 1`; `digest.md` is deleted | 1 | `eval/check_digest.py`, `harness/run.py:72-79` |
 | 18 | `eval/check_freshness.py` fails: live NVE data more than 24 h older than the digest, saved data not marked "ikke dagens varsler", or no `data_source` | `FAIL: ...`, then `[5 check] exit 1`; `digest.md` is deleted | 1 | `eval/check_freshness.py`, `harness/run.py:72-79` |
 
-Outside the harness, the CI job is killed after 10 minutes (`digest.yml:11`), and a failed offline regression step stops the job before the live run.
+Outside the harness, a manual GitHub run is killed after 10 minutes (`digest.yml:14`), and a failed offline regression step stops that job before the live run (lines 20-25). The scheduled run has no such outer limit or offline step; it is bounded only by the per-call time limits in section 3.
 
 **Degrades but does not stop** (the digest is still produced and checked; facts come from code either way):
 
@@ -132,8 +134,9 @@ The kill switch stops one run. This criterion is a rule we set for the operators
 - **Deny rules cover the Read and Edit tools, not the shell.** The agent could still `cat .env` or rewrite a checker through Bash; only the CLAUDE.md text forbids it. `eval/check_freshness.py` and `eval/check_injection.py` have no deny rule at all. Nothing technically blocks `git push`, and an unrequested push did happen once (`docs/prompt-log.md:6`).
 - **The output cap is not a kill switch.** The comment at `harness/common.py:71` groups `MAX_TOKENS` with the kill-switch limits, but reaching 2000 output tokens does not stop the run by itself. A cut-off answer is then usually invalid JSON and stops at stop #16.
 - **No total input cap and no spend limit.** The 1500-character cap is per field, not per prompt. With up to 60 warnings × 3 fields × 1500 characters (about 270 000 characters), the prompt can still overflow Ollama's 4096-token window, or become a large Anthropic request. There is no budget or monthly limit in code; on the Anthropic path that has to be set in the provider account.
-- **`out/digest.json` survives a failed check.** Only `digest.md` is deleted (`harness/run.py:77-79`). The failed `digest.json` stays in `out/` and is included in the CI artifact (`digest.yml:23-29`).
+- **`out/digest.json` survives a failed check.** Only `digest.md` is deleted (`harness/run.py:77-79`). The failed `digest.json` stays in `out/` until the next run deletes it (`harness/run.py:43-46`), so someone opening `out/` after a failed scheduled run can find a digest that did not pass.
 - **The Anthropic path has no fallback.** An API failure ends the run without a digest (exit 2), unlike Ollama, which falls back to templates (`docs/prompt-log.md:29`).
 - **Unforeseen input can still crash.** Input shapes not covered by the stops above (for example a list element that is not a JSON object) raise a Python traceback. That also exits 1, and the exit code alone cannot tell it from a controlled stop.
 - **What the checks do not see.** Personal names are forbidden only in the prompt (`prompts/digest.md:12`); the checker looks for e-mail addresses and phone numbers, not names. Language quality is not checked. The freshness check treats NVE times without an offset as fixed UTC+1, an hour off in summer (`harness/fetch.py:25-27`).
-- **No alerting.** A failed CI run is visible only in the GitHub Actions tab (and GitHub's own failure e-mail, if enabled). Nobody is paged.
+- **No alerting.** A failed scheduled run is visible only in `logs/daily_run.log` (its exit code on the end line). Nobody is notified.
+- **The scheduled run needs the PC on and the user logged in.** If the machine is off or asleep at 07:15, or nobody is logged on (`/IT`), the run does not happen. A missed day leaves no digest and no warning, not even a line in the log.

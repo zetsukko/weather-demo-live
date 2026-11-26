@@ -1,6 +1,6 @@
 # Evaluation run
 
-Generated 2026-11-26T13:25:41+00:00, commit `fb077ce`, mode `--input --no-llm`.
+Generated 2026-11-26T13:29:29+00:00, commit `02dce2f`, mode `--input --no-llm`.
 
 | case                | expected               | result      | status |
 |---------------------|------------------------|-------------|--------|
