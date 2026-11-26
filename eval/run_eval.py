@@ -8,7 +8,9 @@ then eval/check_digest.py, and compares the outcome with expected.json:
   "warnings"     run exits 0, check passes, digest has exactly these (warning_id, danger_level),
                  and none of "absent_ids"
   "no_warnings"  run exits 0, check passes, empty warning list with a no-warnings message
-  "reject"       run exits non-zero and no out/digest.md is left
+  "reject"       run exits non-zero, no out/digest.md is left, and the run stopped itself with a
+                 clean "...; no digest produced." message. A Python traceback is a crash, not a
+                 controlled stop, and counts as FAIL.
 
 Prints a table plus totals and writes eval/results/latest.md and latest.json.
 Exit 0 if every case passes, 1 otherwise. Cases run one after another (they share out/).
@@ -46,6 +48,10 @@ def stop_message(text):
     return last_line(text)
 
 
+def crashed(text):
+    return "Traceback (most recent call last)" in text
+
+
 def fmt_expected(exp):
     if exp["expect"] == "warnings":
         s = ", ".join(f"{w['warning_id']}/L{w['danger_level']}" for w in exp["warnings"])
@@ -64,7 +70,8 @@ def evaluate(case_dir):
            "run_exit": code, "digest_md": digest_md, "check": None}
 
     if code != 0 or not digest_md:
-        rec["result"] = "reject"
+        rec["result"] = "crash" if crashed(output) else "reject"
+        rec["controlled_stop"] = code != 0 and not crashed(output) and "no digest produced" in output
         rec["detail"] = stop_message(output)
     else:
         ccode, cout = run([CHECK])
@@ -83,8 +90,14 @@ def evaluate(case_dir):
     # Compare with expected.json
     why = None
     if exp["expect"] == "reject":
-        if rec["result"] != "reject":
+        if rec["result"] == "crash":
+            why = f"crash, not a controlled stop: {rec['detail']}"
+        elif rec["result"] != "reject":
             why = f"expected the run to stop without a digest, but it exited 0 and produced one ({rec['result']}); check said: {rec['check']}"
+        elif not rec["controlled_stop"]:
+            why = f"run stopped without a clean 'no digest produced' message: {rec['detail']}"
+    elif rec["result"] == "crash":
+        why = f"crash, not a controlled stop: {rec['detail']}"
     elif rec["result"] == "reject":
         why = f"run stopped without a digest: {rec['detail']}"
     elif rec["check"] is None or not rec["check"].startswith("PASS"):
@@ -141,7 +154,7 @@ def main():
     commit = git_commit()
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "latest.json").write_text(json.dumps({
-        "generated_at": stamp, "git_commit": commit, "mode": "--input --no-llm",
+        "generated_at": stamp, "git_commit": commit, "mode": "--input --no-llm", "reject_rule": "strict (controlled stop only)",
         "passed": passed, "total": len(rows), "cases": rows,
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     md = [f"# Evaluation run", "", f"Generated {stamp}, commit `{commit}`, mode `--input --no-llm`.", "",

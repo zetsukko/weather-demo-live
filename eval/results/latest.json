@@ -1,8 +1,9 @@
 {
-  "generated_at": "2026-11-26T12:15:09+00:00",
-  "git_commit": "ae7d545",
+  "generated_at": "2026-11-26T12:21:28+00:00",
+  "git_commit": "040ede4",
   "mode": "--input --no-llm",
-  "passed": 14,
+  "reject_rule": "strict (controlled stop only)",
+  "passed": 12,
   "total": 15,
   "cases": [
     {
@@ -12,10 +13,11 @@
       "run_exit": 1,
       "digest_md": false,
       "check": null,
-      "result": "reject",
+      "result": "crash",
+      "controlled_stop": false,
       "detail": "ValueError: invalid literal for int() with base 10: 'gul'",
-      "status": "PASS",
-      "why": null
+      "status": "FAIL",
+      "why": "crash, not a controlled stop: ValueError: invalid literal for int() with base 10: 'gul'"
     },
     {
       "case": "conflicting_records",
@@ -25,6 +27,7 @@
       "digest_md": false,
       "check": null,
       "result": "reject",
+      "controlled_stop": true,
       "detail": "NVE records for warning 584962 disagree on level or validity; no digest produced.",
       "status": "PASS",
       "why": null
@@ -135,6 +138,7 @@
       "digest_md": false,
       "check": null,
       "result": "reject",
+      "controlled_stop": true,
       "detail": "NVE warning 584962 has no ValidTo; no digest produced.",
       "status": "PASS",
       "why": null
@@ -146,10 +150,11 @@
       "run_exit": 1,
       "digest_md": false,
       "check": null,
-      "result": "reject",
+      "result": "crash",
+      "controlled_stop": false,
       "detail": "KeyError: 'Id'",
-      "status": "PASS",
-      "why": null
+      "status": "FAIL",
+      "why": "crash, not a controlled stop: KeyError: 'Id'"
     },
     {
       "case": "multi_county",
