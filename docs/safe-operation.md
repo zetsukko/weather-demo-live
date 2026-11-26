@@ -54,7 +54,7 @@ The GitHub workflow `.github/workflows/digest.yml` now has only `workflow_dispat
 ## 2. Secrets management
 
 - **Where keys live.** Only in `.env` (local) or GitHub repository secrets. `.env` and `.env.local` are git-ignored (`.gitignore:1-3`), as is `.claude/settings.local.json` (`.gitignore:6`). `.env.example` lists variable names with empty values and says "Never commit .env" (`.env.example:1`).
-- **No key is required.** Without `ANTHROPIC_API_KEY` the harness uses the local Ollama model or template summaries (`harness/summarise.py:182-193`). The CI workflow passes the `ANTHROPIC_API_KEY` secret (`digest.yml:20-21`), but the secret is not set, so CI uses templates.
+- **No key is required.** Without `ANTHROPIC_API_KEY` the harness uses the local Ollama model or template summaries (`harness/summarise.py:182-193`). The GitHub workflow passes the `ANTHROPIC_API_KEY` secret (`digest.yml:23-24`), but the secret is not set, so a manual GitHub run uses templates. The scheduled run is local and uses Ollama (`scripts/daily_run.bat:12`).
 - **Keys stay out of prompts.** The key is sent only in the `x-api-key` request header (`harness/summarise.py:129-133`). The model receives `prompts/digest.md` and the normalised warnings, nothing else (`harness/summarise.py:67-82`).
 - **Keys stay out of logs.** The harness prints token counts, not requests (`harness/summarise.py:140`, `:165`). Error messages carry only the HTTP status or the connection reason (`harness/summarise.py:98-107`). `load_dotenv` never prints values.
 - **Keys stay away from the coding agent.** The Read tool is denied `.env` and `.env.local` (`.claude/settings.json:4-5`), and CLAUDE.md says never to read or print `.env` or keys.
@@ -81,7 +81,7 @@ The default model is the local `llama3.2:3b` through Ollama, which costs no API 
 
 **Needs a person:**
 
-- **Passing a digest on.** Nothing is sent anywhere automatically. There is no e-mail, SMS, chat or web publishing in the code, and sending notifications is out of scope (`SPEC.md:82`). The result is `out/digest.md` (locally) or the CI artifact. A person reads it and decides what, if anything, to forward to the municipalities' emergency coordinators.
+- **Passing a digest on.** Nothing is sent anywhere automatically. There is no e-mail, SMS, chat or web publishing in the code, and sending notifications is out of scope (`SPEC.md:82`). The result is `out/digest.md` on the machine that ran it, including the daily scheduled run (or the artifact of a manual GitHub run). A person reads it and decides what, if anything, to forward to the municipalities' emergency coordinators.
 - **Refreshing the saved test data.** `--save-fixture` is a manual flag; CI never uses it.
 - **Changing the system.** Each task goes on its own branch and PR, the agent does not push unless asked, and checkers in `eval/` are not changed without asking (`CLAUDE.md`).
 
@@ -112,7 +112,7 @@ A run stops **without a digest** in every case below. The message goes to the te
 | 17 | `eval/check_digest.py` fails a property (completeness, no invention, fidelity, locality, grounded summary of at most 60 words with no numbers outside the source, attribution and no e-mail/phone, empty case) | `FAIL: property <n>: ...`, then `[5 check] exit 1`; `digest.md` is deleted | 1 | `eval/check_digest.py`, `harness/run.py:72-79` |
 | 18 | `eval/check_freshness.py` fails: live NVE data more than 24 h older than the digest, saved data not marked "ikke dagens varsler", or no `data_source` | `FAIL: ...`, then `[5 check] exit 1`; `digest.md` is deleted | 1 | `eval/check_freshness.py`, `harness/run.py:72-79` |
 
-Outside the harness, the CI job is killed after 10 minutes (`digest.yml:11`), and a failed offline regression step stops the job before the live run.
+Outside the harness, a manual GitHub run is killed after 10 minutes (`digest.yml:14`), and a failed offline regression step stops that job before the live run (lines 20-25). The scheduled run has no such outer limit or offline step; it is bounded only by the per-call time limits in section 3.
 
 **Degrades but does not stop** (the digest is still produced and checked; facts come from code either way):
 
