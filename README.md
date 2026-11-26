@@ -98,16 +98,14 @@ schtasks /Create /TN "Varsel Innlandet daily run" /TR "<repo>\scripts\daily_run.
 - `SPEC.md` – problem, users, sources, definition of success
 - `tasks/` – one file per task with its acceptance check
 
-## Safe operation (current state)
+## Safe operation
 
-- The LLM gets only the normalised Innlandet warnings; warning text is passed as data, not instructions.
-- One model call per run, output capped at 2000 tokens.
-- The model runs locally through Ollama: a run costs nothing and warning data never leaves the machine.
-- Kill switch: more than 60 active warnings, an NVE failure, or invalid model output stops the run without a digest.
-- NVE calls have a total time limit of 30 s and one retry after 5 s on HTTP 5xx or a timeout (worst case about 65 s).
-- If the local model is down or does not answer within 60 s, the run uses the template summaries (`summary_mode: "fallback"`, reason "model unavailable: ...") and still produces a checked digest; facts come from code either way.
-- Official text is capped at 1500 characters per field before it reaches the model, and Ollama gets a 4096-token context window, so long warnings are not cut silently.
-- The digest is never sent anywhere automatically; a person decides what to pass on.
+Full description, with file references, the kill-switch table, the abandonment criterion and known gaps: [`docs/safe-operation.md`](docs/safe-operation.md).
+
+- Facts (IDs, levels, areas, dates) are copied by code; the model only writes the summary text, and warning text is passed to it as data, not instructions.
+- One model call per run: output capped at 2000 tokens, official text at 1500 characters per field, at most 60 warnings. The default model runs locally through Ollama, so a run costs nothing.
+- The digest is never sent anywhere automatically; a person reads it and decides what to pass on.
+- Kill switch: bad or conflicting NVE data, more than 60 warnings, invalid model output or a failed check stops the run without a digest (exit 1); an NVE or Anthropic API failure stops it with exit 2. If the local model is down, template summaries are used instead.
 - No API key is needed; any optional key lives only in `.env` (git-ignored) or GitHub secrets.
 
 ## Data and licence
