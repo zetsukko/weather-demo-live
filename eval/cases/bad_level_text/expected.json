@@ -1,0 +1,6 @@
+{
+  "case": "bad_level_text",
+  "expect": "reject",
+  "derived_from": "real_2610",
+  "description": "ActivityLevel is the text 'gul' instead of a number on all five 584962 records: the level cannot be read, so the run must stop without a digest."
+}

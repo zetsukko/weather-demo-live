@@ -1,0 +1,6 @@
+{
+  "case": "missing_id",
+  "expect": "reject",
+  "derived_from": "real_2610",
+  "description": "Id removed from the first 584962 record: a record without an ID cannot be merged or traced, so the run must stop without a digest."
+}
