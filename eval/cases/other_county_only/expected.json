@@ -1,0 +1,15 @@
+{
+  "case": "other_county_only",
+  "expect": "warnings",
+  "warnings": [
+    {
+      "warning_id": "584962",
+      "danger_level": 2
+    }
+  ],
+  "absent_ids": [
+    "990001"
+  ],
+  "derived_from": "real_2610",
+  "description": "Added a yellow warning 990001 (copy of a 584962 record) that lists only county 46 Vestland: it must not appear in the Innlandet digest."
+}

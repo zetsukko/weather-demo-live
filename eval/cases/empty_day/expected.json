@@ -1,0 +1,6 @@
+{
+  "case": "empty_day",
+  "expect": "no_warnings",
+  "derived_from": "real_2610",
+  "description": "The five 584962 records set to level 1, so every record is level 1: tests the empty-day message (property 7)."
+}

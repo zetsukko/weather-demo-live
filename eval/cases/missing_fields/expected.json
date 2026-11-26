@@ -1,0 +1,6 @@
+{
+  "case": "missing_fields",
+  "expect": "reject",
+  "derived_from": "real_2610",
+  "description": "ValidTo removed from all five 584962 records: a warning without an end time cannot be checked, so the run must stop without a digest."
+}

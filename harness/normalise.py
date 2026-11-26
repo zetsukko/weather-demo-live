@@ -32,6 +32,10 @@ def normalise(raw):
         if level < common.MIN_LEVEL or common.INNLANDET not in county_ids(rec):
             continue
         wid = str(rec["Id"])
+        # A warning without a validity period cannot be checked or acted on: stop.
+        missing = [f for f in ("ValidFrom", "ValidTo") if not rec.get(f)]
+        if missing:
+            sys.exit(f"NVE warning {wid} has no {' or '.join(missing)}; no digest produced.")
         # NVE sends one record per municipality with the same Id: merge them.
         if wid in by_id:
             w = by_id[wid]

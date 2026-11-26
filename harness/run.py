@@ -4,11 +4,14 @@
   py harness/run.py --offline        replay saved fixtures, no network
   py harness/run.py --save-fixture   live run that also refreshes fixtures/
   py harness/run.py --no-llm         skip the LLM, use template summaries
+  py harness/run.py --input <file>   use a saved NVE response instead of the API/fixture
+                                     (combine with --no-llm for fast deterministic runs)
 
 Exit code: 0 = digest produced and check passed; non-zero = no trustworthy digest.
 """
 import subprocess
 import sys
+from pathlib import Path
 
 import common
 from assemble import assemble
@@ -21,14 +24,22 @@ def main(argv):
     offline = "--offline" in argv
     save = "--save-fixture" in argv
     no_llm = "--no-llm" in argv
+    input_path = None
+    if "--input" in argv:
+        i = argv.index("--input")
+        if i + 1 >= len(argv) or argv[i + 1].startswith("--"):
+            sys.exit("--input needs a file path, e.g. --input eval/cases/real_2610/nve.json")
+        input_path = Path(argv[i + 1]).resolve()
 
     # Clear stale output so an old digest can never fake a PASS.
     for f in (common.RAW_FILE, common.NORMALISED_FILE, common.SUMMARIES_FILE,
               common.DIGEST_JSON, common.DIGEST_MD):
         f.unlink(missing_ok=True)
 
-    raw = fetch(offline=offline, save_fixture=save)
-    print(f"[1 fetch]     {len(raw)} raw record(s) ({'offline' if offline else 'live'})")
+    raw = fetch(offline=offline, save_fixture=save, input_path=input_path)
+    shown = input_path.relative_to(common.ROOT).as_posix() if input_path and input_path.is_relative_to(common.ROOT) else (input_path.name if input_path else "")
+    source = f"input={shown}" if input_path else ("offline" if offline else "live")
+    print(f"[1 fetch]     {len(raw)} raw record(s) ({source})")
 
     warnings = normalise(raw)
     print(f"[2 normalise] {len(warnings)} active Innlandet warning(s)")

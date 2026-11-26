@@ -1,0 +1,12 @@
+{
+  "case": "red_level4",
+  "expect": "warnings",
+  "warnings": [
+    {
+      "warning_id": "584962",
+      "danger_level": 4
+    }
+  ],
+  "derived_from": "real_2610",
+  "description": "The five 584962 records set to level 4 (red): tests the highest level."
+}
